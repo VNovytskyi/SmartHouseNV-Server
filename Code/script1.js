@@ -1,13 +1,11 @@
 var wifi = require("Wifi");
 var http = require("http");
 
+
+
 const buildInLed = D2;
 
 var counter = 0;
-
-setInterval(function() {
-   buildInLed.toggle();
-}, 1000);
 
 wifi.connect("MERCUSYS_7EBA", {password:"3105vlad3010vlada"}, function(err){
   if(err != null){
@@ -20,24 +18,13 @@ wifi.connect("MERCUSYS_7EBA", {password:"3105vlad3010vlada"}, function(err){
       console.log(" ");
       console.log("################## " + ++counter + " ##################");
 
-      var request = req.url.match(/.+\?/); //re = /.+(?=\?)/; //Не поддерживается в этой версии
+      var urlObj = url.parse(req.url, true);
 
-      if(request){
-        request = request[0].substring(0, request[0].length - 1);
-
-        if(request[request.length-1] == '/')
-          request = request.substring(0, request.length - 1);
-      }else{
-        request = req.url;
-      }
-
-      console.log("Request: " + request);
-
-      switch(request){
+      switch(urlObj.pathname){
         case "/":
         case "/home":
           res.writeHead(200,{'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
-          res.end("Home Page");
+          res.end("<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"UTF-8\"> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"> <title>Document</title></head><body> <p>Server</p> <p> <button onclick=\"sendCommand('buildInLed=on')\">ON</button> <button onclick=\"sendCommand('buildInLed=off')\">OFF</button> </p></body></html><script> function sendCommand(command) { var xhr = new XMLHttpRequest(); xhr.open('GET', 'http://192.168.1.106/set?' + command, true); xhr.send(); xhr.onreadystatechange = function() { if (xhr.readyState != 4) return; if (xhr.status != 200) { console.log(xhr.status + ': ' + xhr.statusText); } else { console.log(xhr.responseText); } } }</script>");
           break;
 
         case "/settings":
@@ -48,18 +35,18 @@ wifi.connect("MERCUSYS_7EBA", {password:"3105vlad3010vlada"}, function(err){
         case "/set":
           res.writeHead(200,{'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
 
-          var commands = req.url.match(/([a-z0-9]+=[a-z0-9]+)/g);
+          for(var key in urlObj.query){
+            console.log(key + " " + urlObj.query[key]);
 
-          if(commands.length){
-            //commands[0] - string
-            //
-            //TODO: Обеспечить выполнение команд из строки
-            console.log("Commands: " + commands);
-            res.end("Command: " + commands);
-          }else{
-            console.log("Empty command");
-            res.end("Empty command");
+            switch(key)
+            {
+              case "buildInLed":
+                digitalWrite(buildInLed, urlObj.query[key] == "on" ? 0:1);
+                break;
+            }
           }
+  
+          res.end("set");
           break;
 
         default:
