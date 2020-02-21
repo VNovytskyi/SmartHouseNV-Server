@@ -16,28 +16,18 @@ function wsHandler(ws)
 {
   clients.push(ws);
 
-  ws.on('message', msg => {
-    //TODO: switch по командам
-    /*case "/set":
-      res.writeHead(200,{'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
+  ws.on('message', message => {
+    broadcast(message);
 
-      if(urlObj.query)
-        for(var key in urlObj.query){
-          console.log(key + " " + urlObj.query[key]);
+    message = JSON.parse(message);
+    console.log(message);
 
-          switch(key)
-          {
-            case "buildInLed":
-              digitalWrite(buildInLed, urlObj.query[key] == "on" ? 0:1);
-              break;
-          }
-        }
-
-      res.end("set");
-      break;*/
-    digitalWrite(D2, msg == 'on');
-    console.log(msg);
-    broadcast(msg);
+    switch(message.name)
+    {
+      case "buildInLed":
+        digitalWrite(buildInLed, message.mode != "on");
+        break;
+    }
   });
 
   ws.on('close', evt => {
@@ -45,6 +35,10 @@ function wsHandler(ws)
     if (x > -1) {
       clients.splice(x, 1);
     }
+  });
+
+  ws.on('error', event => {
+    console.log(event);
   });
 }
 
@@ -74,43 +68,56 @@ function serverHandler(req, res)
     case "/socket":
         res.end(`<html>
 <head>
-<script>
-window.onload = () => {
-  var ws = new WebSocket('ws://' + location.host, 'protocolOne');
-  var btn = document.getElementById('btn');
-  var led = document.getElementById('led');
-
-  var btnOn = document.getElementById('btnOn');
-  var btnOff = document.getElementById('btnOff');
-
-  btnOn.onclick = function(event)
-  {
-    let target = event.target;
-    ws.send("on");
-     console.log("on");
-  }
-
-  btnOff.onclick = function(event)
-  {
-    let target = event.target;
-    ws.send("off");
-    console.log("btnOff");
-  }
-
-  ws.onmessage = evt => {
-    btn.innerText = evt.data;
-  };
-
-};
-</script>
+<meta harset="UTF-8">
 </head>
 <body>
-  <p>Led status: <span id="btn"></span></p>
-  <p>
-    <button id="btnOn">on</button>
-    <button id="btnOff">off</button>
-  </p>
+  <p>Led status: <span id="ledStatus"></span></p>
+  <div id="buildInLed">
+    <button>on</button>
+    <button>off</button>
+  </div>
 </body>
+<script>
+var ws = new WebSocket('ws://' + location.host, 'protocolOne');
+var ledStatus = document.getElementById('ledStatus');
+
+ws.onopen = (event) => {
+  console.log("Open");
+}
+
+ws.onerror = (event) => {
+  console.log(event);
+}
+
+ws.onmessage = evt => {
+
+//TODO: switch по сообщениям
+
+   let a = JSON.parse(evt.data);
+   ledStatus.innerText = a.mode;
+};
+
+document.body.onclick = (event) => {
+
+
+			let button = event.target;
+			let container = event.target.closest("div");
+
+			if(event.target.type == "button" || event.target.type == "submit")
+			{
+				let command = {
+					name: container.id,
+                    mode: button.innerHTML
+				};
+
+				commandJSON = JSON.stringify(command);
+				console.log(commandJSON);
+				ws.send(commandJSON);
+			}else{
+				console.log("Unknown element");
+			}
+		}
+</script>
 </html>`);
     break;
 
