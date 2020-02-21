@@ -36,6 +36,7 @@ function wsHandler(ws)
       res.end("set");
       break;*/
     digitalWrite(D2, msg == 'on');
+    console.log(msg);
     broadcast(msg);
   });
 
@@ -61,19 +62,16 @@ function serverHandler(req, res)
   {
     case "/":
     case "/home":
-      res.writeHead(200,{'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
       res.end(storage.read("MainPage"));
       break;
 
     case "/settings":
-      res.writeHead(200,{'Content-Type': 'text/html'});
       res.end("Settings Page");
       break;
 
 
 
     case "/socket":
-        res.writeHead(200,{'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
         res.end(`<html>
 <head>
 <script>
@@ -81,29 +79,42 @@ window.onload = () => {
   var ws = new WebSocket('ws://' + location.host, 'protocolOne');
   var btn = document.getElementById('btn');
   var led = document.getElementById('led');
+
+  var btnOn = document.getElementById('btnOn');
+  var btnOff = document.getElementById('btnOff');
+
+  btnOn.onclick = function(event)
+  {
+    let target = event.target;
+    ws.send("on");
+     console.log("on");
+  }
+
+  btnOff.onclick = function(event)
+  {
+    let target = event.target;
+    ws.send("off");
+    console.log("btnOff");
+  }
+
   ws.onmessage = evt => {
     btn.innerText = evt.data;
   };
-  led.onchange = evt => {
-    ws.send(led.value);
-  };
+
 };
 </script>
 </head>
 <body>
-  <p>Led status: <span id="btn">up</span></p>
+  <p>Led status: <span id="btn"></span></p>
   <p>
-    LED:
-    <select id="led">
-      <option>off</option><option>on</option>
-    </select>
+    <button id="btnOn">on</button>
+    <button id="btnOff">off</button>
   </p>
 </body>
 </html>`);
     break;
 
     default:
-      res.writeHead(404);
       res.end("404");
       break;
   }
@@ -130,7 +141,8 @@ wifi.connect(WIFI_NAME, WIFI_OPTIONS, err => {
     if (err !== null) {
       throw err;
     }else {
-      print("http://"+info.ip);
+      print("http://" + info.ip);
+      print("http://" + info.ip + "/socket");
       startServer();
     }
   });
