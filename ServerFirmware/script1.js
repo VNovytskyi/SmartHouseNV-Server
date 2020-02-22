@@ -3,6 +3,7 @@ const storage = require("Storage");
 const WebSocket = require("ws");
 
 const buildInLed = D2;
+const lamp = D3;
 
 const WIFI_NAME = "MERCUSYS_7EBA";
 const WIFI_OPTIONS = {
@@ -16,21 +17,29 @@ function wsHandler(ws)
 {
   clients.push(ws);
 
+  console.log("New client");
+
+  //TODO: отправить новому клиенту состояние всех 'ножек' (ввести его в курс дела)
+
   ws.on('message', message => {
     broadcast(message);
 
-    message = JSON.parse(message);
-    console.log(message);
+    let arrMessage = JSON.parse(message);
+    console.log(arrMessage);
 
-    switch(message.name)
-    {
-      case "buildInLed":
-        digitalWrite(buildInLed, message.mode != "on");
-        break;
-    }
+    arrMessage.forEach(element => {
+      switch(element.name)
+      {
+        case "buildInLed": digitalWrite(buildInLed, element.mode != "on"); break;
+        case "lamp": digitalWrite(lamp, element.mode != "on"); break;
+
+        default: console.log("Input message name error: " + element.name);
+      }
+    });
   });
 
   ws.on('close', evt => {
+    console.log("Disconnect client");
     var x = clients.indexOf(ws);
     if (x > -1) {
       clients.splice(x, 1);
@@ -56,70 +65,13 @@ function serverHandler(req, res)
   {
     case "/":
     case "/home":
+      //TODO: залить новый файл
       res.end(storage.read("MainPage"));
       break;
 
     case "/settings":
       res.end("Settings Page");
       break;
-
-
-
-    case "/socket":
-        res.end(`<html>
-<head>
-<meta harset="UTF-8">
-</head>
-<body>
-  <p>Led status: <span id="ledStatus"></span></p>
-  <div id="buildInLed">
-    <button>on</button>
-    <button>off</button>
-  </div>
-</body>
-<script>
-var ws = new WebSocket('ws://' + location.host, 'protocolOne');
-var ledStatus = document.getElementById('ledStatus');
-
-ws.onopen = (event) => {
-  console.log("Open");
-}
-
-ws.onerror = (event) => {
-  console.log(event);
-}
-
-ws.onmessage = evt => {
-
-//TODO: switch по сообщениям
-
-   let a = JSON.parse(evt.data);
-   ledStatus.innerText = a.mode;
-};
-
-document.body.onclick = (event) => {
-
-
-			let button = event.target;
-			let container = event.target.closest("div");
-
-			if(event.target.type == "button" || event.target.type == "submit")
-			{
-				let command = {
-					name: container.id,
-                    mode: button.innerHTML
-				};
-
-				commandJSON = JSON.stringify(command);
-				console.log(commandJSON);
-				ws.send(commandJSON);
-			}else{
-				console.log("Unknown element");
-			}
-		}
-</script>
-</html>`);
-    break;
 
     default:
       res.end("404");
@@ -149,7 +101,6 @@ wifi.connect(WIFI_NAME, WIFI_OPTIONS, err => {
       throw err;
     }else {
       print("http://" + info.ip);
-      print("http://" + info.ip + "/socket");
       startServer();
     }
   });
