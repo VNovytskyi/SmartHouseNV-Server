@@ -5,6 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>SmartHouseNV</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+	<style>
+		.slidecontainer {
+			width: 100%; /* Width of the outside container */
+		}
+
+		/* The slider itself */
+		.slider {
+			-webkit-appearance: none;  /* Override default CSS styles */
+			appearance: none;
+			width: 100%; /* Full-width */
+			height: 25px; /* Specified height */
+			background: #d3d3d3; /* Grey background */
+			outline: none; /* Remove outline */
+			opacity: 1.0; /* Set transparency (for mouse-over effects on hover) */
+			-webkit-transition: .2s; /* 0.2 seconds transition on hover */
+			transition: opacity .2s;
+		}
+
+		/* Mouse-over effects */
+		.slider:hover {
+			opacity: 1; /* Fully shown on mouse-over */
+		}
+
+		/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+		.slider::-webkit-slider-thumb {
+			-webkit-appearance: none; /* Override default look */
+			appearance: none;
+			width: 25px; /* Set a specific slider handle width */
+			height: 25px; /* Slider handle height */
+			background: #4CAF50; /* Green background */
+			cursor: pointer; /* Cursor on hover */
+		}
+
+		.slider::-moz-range-thumb {
+			width: 25px; /* Set a specific slider handle width */
+			height: 25px; /* Slider handle height */
+			background: #4CAF50; /* Green background */
+			cursor: pointer; /* Cursor on hover */
+		}
+	</style>
 </head>
 <body class="pt-5">
 	<nav aria-label="breadcrumb" class="fixed-top">
@@ -39,8 +79,9 @@
 					<div class="card">
 						<div class="card-body mt-1">
 							<h5 class="card-title">Вентиляция</h5>
-							<button type="button" class="btn btn-success">Вкл</button>
-							<button type="button" class="btn btn-danger ml-2">Выкл</button>
+							<div class="slidecontainer">
+								<input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+							</div>
 						</div>
 					</div>
 				</div>
@@ -48,6 +89,7 @@
 					<div class="card">
 						<div class="card-body mt-1">
 							<h5 class="card-title">Шторы</h5>
+							<!-- TODO: Шкала прогресса открытия штор.  -->
 							<button type="button" class="btn btn-success mt-1">Открыть</button>
 							<button type="button" class="btn btn-danger mt-1  ml-2">Закрыть</button>
 						</div>
@@ -109,10 +151,11 @@
 			
 				switch(target.id)
 				{
-					case "buildInLed": buttonToggle(target, element.mode); break;
-					case "lamp": buttonToggle(target, element.mode); break;
-						
-					default: console.log("Invalid target id");
+					case "buildInLed": buttonToggle(target, element.value); break;
+					case "lamp": buttonToggle(target, element.value); break;
+					case "myRange": target.value = element.value; break;
+					
+					default: console.log("Invalid target id (" + target.id + ")");
 			}
 			});
 		};
@@ -122,25 +165,37 @@
 		};
 
 		document.body.onclick = (event) => {
-			let button = event.target;
-	
-			if(event.target.type == "button")
+			let currentTarget = event.target;
+			let commandsArr = [];
+
+			switch(currentTarget.type)
 			{
-				let command = {
-					name: button.id,
-					mode: button.innerHTML == "Выключить" ? "off":"on"
-				};
+				case "button":		
+					commandsArr.push({
+						name: currentTarget.id,
+						value: currentTarget.innerHTML == "Выключить" ? "off":"on"
+					});
+					break;
 
-				let commandsArr = [];
-				commandsArr.push(command);
+				case "range":
+					commandsArr.push({
+						name: currentTarget.id,
+						value: currentTarget.value
+					});
+					break;
 
+				default:
+					console.log("Not handler: " + event.target + " - " + event.target.type);
+			}
+
+			if(commandsArr.length > 0)
+			{
+				console.log(commandsArr);
 				commandsArrJSON = JSON.stringify(commandsArr);
 
-				console.log("Output:");
-				console.log(commandsArrJSON);
+				//console.log("Output:");
+				//console.log(commandsArrJSON);
 				ws.send(commandsArrJSON);
-			}else{
-				console.log("Unknown element");
 			}
 		}
 	</script>

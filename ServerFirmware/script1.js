@@ -2,8 +2,17 @@ const wifi = require("Wifi");
 const storage = require("Storage");
 const WebSocket = require("ws");
 
+/*
+  NodeMCU ESPRUINO
+    D0      D16
+    D1      D5
+    D4      D2
+
+*/
+
 const buildInLed = D2;
-const lamp = D3;
+const lamp = D16;
+const vent = D5;
 
 const WIFI_NAME = "MERCUSYS_7EBA";
 const WIFI_OPTIONS = {
@@ -30,8 +39,21 @@ function wsHandler(ws)
     arrMessage.forEach(element => {
       switch(element.name)
       {
-        case "buildInLed": digitalWrite(buildInLed, element.mode != "on"); break;
-        case "lamp": digitalWrite(lamp, element.mode != "on"); break;
+        case "buildInLed": digitalWrite(buildInLed, element.value != "on"); break;
+        case "lamp": digitalWrite(lamp, element.value == "on"); break;
+
+        case "myRange":
+          let value = element.value / 100.0;
+          console.log(value);
+
+          if(value < 0.1)
+            value = 0;
+          if(value > 0.9)
+            value = 1;
+
+          analogWrite(vent, value);
+
+          break;
 
         default: console.log("Input message name error: " + element.name);
       }
