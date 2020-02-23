@@ -2,6 +2,7 @@ const wifi = require("Wifi");
 const storage = require("Storage");
 const WebSocket = require("ws");
 
+
 /*
   NodeMCU ESPRUINO
     D0      D16
@@ -10,9 +11,51 @@ const WebSocket = require("ws");
 
 */
 
-const buildInLed = D2;
-const lamp = D16;
-const vent = D5;
+//----------------------------------------------------------
+class MyPin{
+  constructor(pin, reverse){
+    this.pin = pin;
+    this.reverse = reverse;
+    this.off();
+  }
+
+  on(){
+    if(this.reverse)
+      this.pin.reset();
+    else
+      this.pin.set();
+
+    this.state = "on";
+  }
+
+  off(){
+    if(this.reverse)
+      this.pin.set();
+    else
+      this.pin.reset();
+
+    this.state = "off";
+  }
+
+  getState(){
+    return this.state;
+  }
+
+  setState(state){
+    this.state = state;
+    if(state == "off")
+      this.off();
+    else
+      this.on();
+  }
+}
+
+const buildInLed = new MyPin(D2, true);
+const lamp = new MyPin(D16);
+const vent = new MyPin(D5);
+
+
+//----------------------------------------------------------
 
 const WIFI_NAME = "MERCUSYS_7EBA";
 const WIFI_OPTIONS = {
@@ -26,25 +69,22 @@ function wsHandler(ws)
 {
   clients.push(ws);
 
-  console.log("New client");
-
-  //TODO: отправить новому клиенту состояние всех 'ножек' (ввести его в курс дела)
+  //console.log("New client");
 
   ws.on('message', message => {
     broadcast(message);
 
     let arrMessage = JSON.parse(message);
-    console.log(arrMessage);
+    //console.log(arrMessage);
 
     arrMessage.forEach(element => {
       switch(element.name)
       {
-        case "buildInLed": digitalWrite(buildInLed, element.value != "on"); break;
-        case "lamp": digitalWrite(lamp, element.value == "on"); break;
+        case "buildInLed": buildInLed.setState(element.value); break;
+        case "lamp":  lamp.setState(element.value); break;
 
         case "myRange":
           let value = element.value / 100.0;
-          console.log(value);
 
           if(value < 0.1)
             value = 0;
@@ -61,7 +101,7 @@ function wsHandler(ws)
   });
 
   ws.on('close', evt => {
-    console.log("Disconnect client");
+    //console.log("Disconnect client");
     var x = clients.indexOf(ws);
     if (x > -1) {
       clients.splice(x, 1);
@@ -71,6 +111,9 @@ function wsHandler(ws)
   ws.on('error', event => {
     console.log(event);
   });
+
+  //TODO: отправить новому клиенту состояние всех 'ножек' (ввести его в курс дела)
+  bringUpToDate(ws);
 }
 
 function serverHandler(req, res)
@@ -112,6 +155,26 @@ function startServer()
   s.listen(80);
 }
 
+function bringUpToDate(ws)
+{
+  let commandsArr = [];
+
+  commandsArr.push({
+    name: "buildInLed",
+	value: buildInLed.getState()
+  });
+
+  commandsArr.push({
+    name: "lamp",
+	value: lamp.getState()
+  });
+
+  //TODO: Send range value
+
+  let commandsArrJSON = JSON.stringify(commandsArr);
+  //console.log("Send bringUpToDate: " + commandsArrJSON);
+  ws.send(commandsArrJSON);
+}
 
 wifi.connect(WIFI_NAME, WIFI_OPTIONS, err => {
   if (err !== null) {

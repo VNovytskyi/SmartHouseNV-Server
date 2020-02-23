@@ -79,6 +79,7 @@
 					<div class="card">
 						<div class="card-body mt-1">
 							<h5 class="card-title">Вентиляция</h5>
+							<div id="debug"></div>
 							<div class="slidecontainer">
 								<input type="range" min="1" max="100" value="50" class="slider" id="myRange">
 							</div>
@@ -133,7 +134,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
 	<script>
 		var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
-		
+
 		ws.onopen = (event) => {
 			console.log("WebSocket open");
 		}
@@ -145,6 +146,8 @@
 
 		ws.onmessage = event => {
 			let commandArr = JSON.parse(event.data);
+			console.log("Input");
+			console.log(commandArr);
 			
 			commandArr.forEach(element => {
 				let target = document.getElementById(element.name);
@@ -163,10 +166,16 @@
 		ws.onclose = event => {
 			console.log("WebSocket close");
 		};
+		
+		document.body.addEventListener("click", eventsHandler, false);
+		//document.body.addEventListener("change", eventsHandler, false);
 
-		document.body.onclick = (event) => {
+		function eventsHandler(event)
+		{
 			let currentTarget = event.target;
 			let commandsArr = [];
+
+			console.log("Event");
 
 			switch(currentTarget.type)
 			{
@@ -182,6 +191,7 @@
 						name: currentTarget.id,
 						value: currentTarget.value
 					});
+					
 					break;
 
 				default:
@@ -190,15 +200,15 @@
 
 			if(commandsArr.length > 0)
 			{
-				console.log(commandsArr);
 				commandsArrJSON = JSON.stringify(commandsArr);
 
-				//console.log("Output:");
-				//console.log(commandsArrJSON);
+				console.log("Output:");
+				console.log(commandsArrJSON);
 				ws.send(commandsArrJSON);
 			}
 		}
 	</script>
+	
 	<script>
 		function hasClass(elem, className) {
 			return new RegExp(' ' + className + ' ').test(' ' + elem.className + ' ');
