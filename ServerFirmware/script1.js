@@ -2,6 +2,29 @@ const wifi = require("Wifi");
 const storage = require("Storage");
 const WebSocket = require("ws");
 
+const homeLocation = {
+  BEDROOM: 0,
+  HALL: 1,
+  BATHROOM: 2,
+  KITCHEN: 3
+};
+
+const deviceType = {
+  SOCKET: 0,
+  LIGHT: 1,
+  WATERTAP: 2,
+  LOUVERS: 3,
+  VENTILATION: 4
+};
+
+class Device{
+  constructor(name, location, type){
+    this.name = name;
+    this.location = location;
+    this.type = type;
+  }
+}
+
 
 /*
   NodeMCU ESPRUINO
@@ -50,7 +73,7 @@ class MyPin{
   }
 }
 
-const buildInLed = new MyPin(D2, true);
+const buildInLed = new MyPin(D2, true); // D2 = NodeMCU.D4
 const lamp = new MyPin(D16);
 const vent = new MyPin(D5);
 
