@@ -1,0 +1,3 @@
+https://api.telegram.org/bot1137257312:AAExfW8ZBUMOYI19_npkozcR-0IchuO3joE/getUpdates
+
+https://api.telegram.org/bot1137257312:AAExfW8ZBUMOYI19_npkozcR-0IchuO3joE/sendMessage?chat_id=439079884&text=Привет
