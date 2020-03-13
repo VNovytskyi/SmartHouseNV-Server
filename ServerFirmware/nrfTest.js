@@ -4,10 +4,10 @@ class MyPin{
   constructor(pin, reverse){
     this.pin = pin;
     this.reverse = reverse;
-    this.off();
+    this.low();
   }
 
-  on(){
+  high(){
     if(this.reverse)
       this.pin.reset();
     else
@@ -16,7 +16,7 @@ class MyPin{
     this.state = "on";
   }
 
-  off(){
+  low(){
     if(this.reverse)
       this.pin.set();
     else
@@ -32,9 +32,9 @@ class MyPin{
   setState(state){
     this.state = state;
     if(state == "off")
-      this.off();
+      this.low();
     else
-      this.on();
+      this.high();
   }
 }
 
@@ -42,26 +42,123 @@ var CSN = new MyPin(NodeMCU.D8, false);
 var CE = new MyPin(NodeMCU.D2, false);
 
 function NRF(SPI, CSN, CE){
+  this.CONFIG = 0x00;
   this.REG_STATUS = 0x07;
+  this.RX_ADDR_P0 = 0x0A;
+  this.RX_ADDR_P1 = 0x0B;
+  this.RX_ADDR_P2 = 0x0C;
+  this.RX_ADDR_P3 = 0x0D;
+  this.RX_ADDR_P4 = 0x0E;
+  this.RX_ADDR_P5 = 0x0F;
+  this.TX_ADDR = 0x10;
+  this.W_REGISTER = 0x20;
 
   this.SPI = SPI;
   this.CSN = CSN;
   this.CE = CE;
 
-  CE.off();
+  CE.low();
 
   this.readReg = function(regAddr){
     let regValue = 0x00;
-    CSN.off();
+    CSN.low();
+
     regValue = SPI.send(regAddr);
     if(regAddr != 0x07)
-    CSN.on();
+      regValue = SPI.send(0xFF);
+
+    CSN.high();
     return regValue;
-  }
+  };
+
+  this.readMBReg = function(regAddr){
+    let regValue = "";
+    let bytesCount = 5;
+    CSN.low();
+
+    SPI.send(regAddr);
+    while(bytesCount--){
+      regValue += SPI.send(0xFF).toString(16);
+    }
+    regValue = "0x" + regValue.toUpperCase();
+
+    CSN.high();
+    return regValue;
+  };
+
+  this.writeReg = function(regAddr, regValue){
+    regAddr |= this.W_REGISTER;
+    CSN.low();
+    SPI.send(regAddr);
+    SPI.send(regValue);
+    CSN.high();
+  };
+
+  this.writeMBReg = function(regAddr, regValue){
+    regAddr |= this.W_REGISTER;
+
+    CSN.low();
+    SPI.send(regAddr);
+
+    for(let i = 0; i < 5; ++i){
+      SPI.send(regValue[i]);
+    }
+
+    CSN.high();
+  };
+
+  this.toggleFeature = function(){
+    CSN.low();
+    SPI.send(0x50);
+    SPI.send(0x73);
+    CSN.high();
+  };
+
+  this.flushRX = function(){
+    CSN.low();
+    SPI.send(0xE2);
+    CSN.high();
+  };
+
+  this.flushTX = function(){
+    CSN.low();
+    SPI.send(0xE1);
+    CSN.high();
+  };
+
+  this.ModeRX = function(){
+    let regValue = this.readReg(this.CONFIG);
+    regval |= (1<<(1))|(1<<(0));
+    this.writeReg(this.CONFIG, regValue);
+    CE.high();
+    this.flushRX();
+    this.flushTX();
+  };
+
+  this.ModeTX = function(){
+    CE.low();
+    let config = this.readReg(this.CONFIG);
+
+    if(!(config & 1<<(1))){
+      config |= 1<<(1);
+      this.writeReg(this.CONFIG, config);
+    }
+
+    config = this.readReg(this.CONFIG);
+    config &= ~(1<<(0));
+    this.writeReg(this.CONFIG, config);
+
+    this.flushRX();
+    this.flushTX();
+  };
 }
 
 var nrf = new NRF(SPI1, CSN, CE);
+
 console.log(nrf.readReg(nrf.REG_STATUS));
+console.log(nrf.readMBReg(nrf.RX_ADDR_P0));
+nrf.writeMBReg(nrf.RX_ADDR_P0, ['N', 'o', 'd', 'e', '1']);
+console.log(nrf.readMBReg(nrf.RX_ADDR_P0));
 
 /*
 function printDetails(){
