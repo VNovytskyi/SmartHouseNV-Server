@@ -52,6 +52,8 @@ function NRF(SPI, CSN, CE){
   this.RX_ADDR_P5 = 0x0F;
   this.TX_ADDR = 0x10;
   this.W_REGISTER = 0x20;
+  this.R_RX_PAYLOAD = 0x61;
+  this.FEATURE = 0x1D;
 
   this.SPI = SPI;
   this.CSN = CSN;
@@ -150,6 +152,54 @@ function NRF(SPI, CSN, CE){
 
     this.flushRX();
     this.flushTX();
+  };
+
+  this.GetPacket = function(length){
+    CSN.low();
+
+    SPI.send(this.R_RX_PAYLOAD);
+    let result = "";
+    while(length--)
+      result += SPI.send(0xFF);
+
+    let blank = 32 - length;
+    while(blank--)
+       SPI.send(0xFF);
+
+    CSN.high();
+    SPI.send(nrf.REG_STATUS, (1<<(6)) | (1<<(4)) | (1<<(5)));
+  };
+
+  this.SendPacket = function(buf, length, writeType){
+    let feature = this.readReg(this.FEATURE);
+    let en_dpl = feature & (1<<(2));
+
+    CSN.low();
+    SPI.send(writeType);
+    for(let i = 0; i < length; ++i)
+      SPI.send(buf[i]);
+
+    if(!en_dpl){
+      let blank  = 32 - length;
+      while(blank--)
+        SPI.send(0xFF);
+    }
+    CSN.high();
+    //delay
+    CE.low();
+
+    let status = nrf.readReg(this.REG_STATUS);
+
+    if(status & (1<<(5))){
+      this.writeReg(this.REG_STATUS, 0x20);
+      return true;
+    }
+
+    if(status & (1<<(5))){
+      this.writeReg(this.REG_STATUS, 0x10);
+      this.flushTX();
+      return false;
+    }
   };
 }
 
