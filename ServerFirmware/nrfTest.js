@@ -54,6 +54,15 @@ function NRF(SPI, CSN, CE){
   this.W_REGISTER = 0x20;
   this.R_RX_PAYLOAD = 0x61;
   this.FEATURE = 0x1D;
+  this.EN_AA = 0x01;
+  this.EN_RXADDR = 0x02;
+  this.SETUP_AW = 0x03;
+  this.SETUP_RETR = 0x04;
+  this.RF_CH = 0x05;
+  this.RF_SETUP = 0x06;
+  this.FEATURE = 0x1D;
+  this.DYNPD = 0x1C;
+  this.W_TX_PAYLOAD = 0xA0;
 
   this.SPI = SPI;
   this.CSN = CSN;
@@ -130,7 +139,7 @@ function NRF(SPI, CSN, CE){
 
   this.ModeRX = function(){
     let regValue = this.readReg(this.CONFIG);
-    regval |= (1<<(1))|(1<<(0));
+    regValue |= (1<<(1))|(1<<(0));
     this.writeReg(this.CONFIG, regValue);
     CE.high();
     this.flushRX();
@@ -162,12 +171,15 @@ function NRF(SPI, CSN, CE){
     while(length--)
       result += SPI.send(0xFF);
 
+    /*
     let blank = 32 - length;
     while(blank--)
        SPI.send(0xFF);
-
+*/
+    
     CSN.high();
-    SPI.send(nrf.REG_STATUS, (1<<(6)) | (1<<(4)) | (1<<(5)));
+    this.writeReg(nrf.REG_STATUS, (1<<(6)) | (1<<(4)) | (1<<(5)));
+    return result;
   };
 
   this.SendPacket = function(buf, length, writeType){
@@ -185,7 +197,9 @@ function NRF(SPI, CSN, CE){
         SPI.send(0xFF);
     }
     CSN.high();
-    //delay
+
+    CE.high();
+
     CE.low();
 
     let status = nrf.readReg(this.REG_STATUS);
@@ -195,47 +209,38 @@ function NRF(SPI, CSN, CE){
       return true;
     }
 
-    if(status & (1<<(5))){
+    if(status & (1<<(4))){
       this.writeReg(this.REG_STATUS, 0x10);
       this.flushTX();
       return false;
-    }
+  }
   };
 }
 
 var nrf = new NRF(SPI1, CSN, CE);
 
-console.log(nrf.readReg(nrf.REG_STATUS));
-console.log(nrf.readMBReg(nrf.RX_ADDR_P0));
-nrf.writeMBReg(nrf.RX_ADDR_P0, ['N', 'o', 'd', 'e', '1']);
-console.log(nrf.readMBReg(nrf.RX_ADDR_P0));
-
-/*
 function printDetails(){
-  let status = nrf.getStatus();
+  let status = nrf.readReg(nrf.REG_STATUS);
   let RX_DR = (status & (1 << (6)))? 1:0;
   let TX_DS = (status & (1 << 5))? 1:0;
   let MAX_RT = (status & (1 << 4))? 1:0;
   let RX_P_NO = (status >> 1) & 0b111;
   let TX_FULL = (status & (1 << 0))? 1:0;
 
-  let RX_ADDR_P0_1 = nrf.getAddr(0x0A) + " -  " +  nrf.getAddr(0x0B);
+  let RX_ADDR_P0_1 = nrf.readMBReg(nrf.RX_ADDR_P0) + " -  " +  nrf.readMBReg(nrf.RX_ADDR_P1);
 
-  
-  
-  
-  let RX_ADDR_P2_5 = "0x" + nrf.getReg(0x0C).toString(16) + " 0x" + nrf.getReg(0x0D).toString(16) + " 0x" + nrf.getReg(0x0E).toString(16) + " 0x" + nrf.getReg(0x0F).toString(16);
-  let TX_ADDR = nrf.getAddr(0x10);
-  let RX_PW_P0_6 = "0x" + nrf.getReg(0x11).toString(16) + " 0x" + nrf.getReg(0x12).toString(16) + " 0x" +nrf.getReg(0x13).toString(16) + " 0x" +nrf.getReg(0x14).toString(16) + " 0x" +nrf.getReg(0x15).toString(16) + " 0x" +nrf.getReg(0x16).toString(16);
-  let EN_AA = "0x" + nrf.getReg(0x01).toString(16);
-  let EN_RXADDR = "0x" + nrf.getReg(0x02).toString(16);
-  let RF_CH = "0x" + nrf.getReg(0x05).toString(16);
-  let RF_SETUP = "0x" + nrf.getReg(0x06).toString(16);
-  let CONFIG = "0x" + nrf.getReg(0x00).toString(16);
-  let DYNPD_FEATURE = "0x" + nrf.getReg(0x1C).toString(16) + " 0x" + nrf.getReg(0x1D).toString(16);
+  let RX_ADDR_P2_5 = "0x" + nrf.readReg(nrf.RX_ADDR_P2).toString(16) + " 0x" + nrf.readReg(nrf.RX_ADDR_P3).toString(16) + " 0x" + nrf.readReg(nrf.RX_ADDR_P4).toString(16) + " 0x" + nrf.readReg(nrf.RX_ADDR_P5).toString(16);
+
+  let TX_ADDR = nrf.readMBReg(nrf.TX_ADDR);
+  let EN_AA = "0x" + nrf.readReg(nrf.EN_AA).toString(16);
+  let EN_RXADDR = "0x" + nrf.readReg(nrf.EN_RXADDR).toString(16);
+  let RF_CH = "0x" + nrf.readReg(nrf.RF_CH).toString(16);
+  let RF_SETUP = "0x" + nrf.readReg(nrf.RF_SETUP).toString(16);
+  let CONFIG = "0x" + nrf.readReg(nrf.REG_STATUS).toString(16);
+  let DYNPD_FEATURE = "0x" + nrf.readReg(nrf.DYNPD).toString(16) + " 0x" + nrf.readReg(nrf.FEATURE).toString(16);
 
   let DataRate = 0;
-  let dr = nrf.getReg(0x06) & (1<<(5) | 1<<(3));
+  let dr = nrf.readReg(0x06) & (1<<(5) | 1<<(3));
   if(dr == (1<<(5)))
     DataRate = 250000;
   else if(dr == (1<<(3)))
@@ -244,7 +249,7 @@ function printDetails(){
     DataRate = 1000000;
 
   let LengthCRC = 0;
-  let crc = nrf.getReg(0x00) & (1<<(2) | 1<<(3));
+  let crc = nrf.readReg(0x00) & (1<<(2) | 1<<(3));
   if(crc & 1<<(3)){
     if(crc & 1<<(2)){
       LengthCRC = 16;
@@ -252,7 +257,7 @@ function printDetails(){
       LengthCRC = 8;
   }
 
-  let PowerAmplifier = (nrf.getReg(0x06) & (1<<(1) | (1<<(2))))>>1;
+  let PowerAmplifier = (nrf.readReg(0x06) & (1<<(1) | (1<<(2))))>>1;
 
   console.log(" ");
   console.log("printDetails");
@@ -260,7 +265,7 @@ function printDetails(){
   console.log("RX_ADDR_P0-1: " + RX_ADDR_P0_1);
   console.log("RX_ADDR_P2-5: " + RX_ADDR_P2_5);
   console.log("TX_ADDR: " + TX_ADDR);
-  console.log("RX_PW_P0-6: " + RX_PW_P0_6);
+  //console.log("RX_PW_P0-6: " + RX_PW_P0_6);
   console.log("EN_AA: " + EN_AA); // отличается
   console.log("EN_RXADDR: " + EN_RXADDR);
   console.log("RF_CH: " + RF_CH); // отличается
@@ -271,12 +276,55 @@ function printDetails(){
   console.log("CRC Length: " + LengthCRC);
   console.log("PA Power: " + PowerAmplifier);
 }
-*/
+
 
 function onInit() {
+  CE.low();
+  nrf.writeReg(nrf.EN_AA, 0x3F);
+  nrf.writeReg(nrf.EN_RXADDR, 0x03);
+  nrf.writeReg(nrf.SETUP_AW, 0x03);
+  nrf.writeReg(nrf.SETUP_RETR, 0x5F);
+  nrf.writeReg(nrf.RF_CH, 0x60);
+  nrf.writeReg(nrf.RF_SETUP, 0x27);
+  nrf.toggleFeature();
+  nrf.writeReg(nrf.FEATURE, 0x06);
+  nrf.writeReg(nrf.DYNPD, 0x3F);
 
-  //printDetails();
+  nrf.writeMBReg(nrf.TX_ADDR, ['1', 'N', 'o', 'd', 'e']);
+  nrf.writeMBReg(nrf.RX_ADDR_P0, ['1', 'N', 'o', 'd', 'e']);
+  nrf.writeMBReg(nrf.RX_ADDR_P1, ['1', 'N', 'o', 'd', 'e']);
+
+  nrf.writeReg(nrf.PW_P0, 0x20);
+  nrf.writeReg(nrf.PW_P1, 0x20);
+
+  let rxMode = true;
+
+  if(rxMode)
+  {
+    nrf.ModeRX();
+
+    setInterval(() => {
+      if(!(nrf.readReg(0x17) & (1<<(0))))
+      {
+        let data = nrf.GetPacket(1);
+        let status = nrf.readReg(nrf.REG_STATUS);
+        console.log("ESP get: " + data);
+      }
+    }, 1000);
+  }
+  else
+  {
+    nrf.ModeTX();
+
+    setInterval(() => {
+      let result = nrf.SendPacket([sendValue++], 1, nrf.W_TX_PAYLOAD);
+      console.log("ESP send: " + sendValue + " -> " + result);
+    }, 1000);
+  }
+
+  printDetails();
 }
 
+var sendValue = 0;
 onInit();
 
