@@ -167,16 +167,10 @@ function NRF(SPI, CSN, CE){
     CSN.low();
 
     SPI.send(this.R_RX_PAYLOAD);
-    let result = "";
+    let result = [];
     while(length--)
-      result += SPI.send(0xFF);
+      result.push(SPI.send(0xFF));
 
-    /*
-    let blank = 32 - length;
-    while(blank--)
-       SPI.send(0xFF);
-*/
-    
     CSN.high();
     this.writeReg(nrf.REG_STATUS, (1<<(6)) | (1<<(4)) | (1<<(5)));
     return result;
@@ -297,7 +291,7 @@ function onInit() {
   nrf.writeReg(nrf.PW_P0, 0x20);
   nrf.writeReg(nrf.PW_P1, 0x20);
 
-  let rxMode = true;
+  let rxMode = false;
 
   if(rxMode)
   {
@@ -306,7 +300,7 @@ function onInit() {
     setInterval(() => {
       if(!(nrf.readReg(0x17) & (1<<(0))))
       {
-        let data = nrf.GetPacket(1);
+        let data = nrf.GetPacket(10);
         let status = nrf.readReg(nrf.REG_STATUS);
         console.log("ESP get: " + data);
       }
@@ -315,10 +309,10 @@ function onInit() {
   else
   {
     nrf.ModeTX();
-
     setInterval(() => {
-      let result = nrf.SendPacket([sendValue++], 1, nrf.W_TX_PAYLOAD);
-      console.log("ESP send: " + sendValue + " -> " + result);
+      let send = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+      let result = nrf.SendPacket(send, send.length, nrf.W_TX_PAYLOAD);
+      console.log("ESP send: " + send + " -> " + result);
     }, 1000);
   }
 
