@@ -138,6 +138,11 @@ function NRF(SPI, CSN, CE){
     CSN.high();
   };
 
+  this.setReceiverAddress = function(receiverAddress)
+  {
+    nrf.writeMBReg(nrf.TX_ADDR, receiverAddress);
+  };
+
   this.ModeRX = function(){
     let regValue = this.readReg(this.CONFIG);
     regValue |= (1<<(1))|(1<<(0));
@@ -185,7 +190,8 @@ function NRF(SPI, CSN, CE){
       @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
   */
   this.SendPacket = function(receiverAddress, data, writeType){
-    nrf.writeMBReg(nrf.TX_ADDR, receiverAddress);
+    if(receiverAddress != null)
+      nrf.setReceiverAddress(receiverAddress)
 
     let dataLength = data.length;
 
@@ -205,6 +211,13 @@ function NRF(SPI, CSN, CE){
 
     CSN.high();
     CE.high();
+
+    let s = 0;
+    for(let i = 0; i < 100; ++i)
+    {
+      s++;
+    }
+
     CE.low();
 
     let status = nrf.readReg(this.REG_STATUS);
@@ -222,10 +235,24 @@ function NRF(SPI, CSN, CE){
 
     return -1;
   };
+
+  /*
+    @brief: Organization of a complete dispatch cycle
+    @param receiverAddress
+    @param data - data to send. [], ""
+    @param writeType (W_TX_PAYLOAD, )
+    @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
+  */
+  this.SendSysPacket = function(receiverAddress, data, writeType){
+    nrf.setReceiverAddress(receiverAddress);
+
+    let dataLength = data.length;
+  };
 }
 
 var nrf = new NRF(SPI1, CSN, CE);
 
+/*
 function printDetails(){
   let status = nrf.readReg(nrf.REG_STATUS);
   let RX_DR = (status & (1 << (6)))? 1:0;
@@ -283,7 +310,7 @@ function printDetails(){
   console.log("CRC Length: " + LengthCRC);
   console.log("PA Power: " + PowerAmplifier);
 }
-
+*/
 
 function onInit() {
   CE.low();
@@ -297,7 +324,7 @@ function onInit() {
   nrf.writeReg(nrf.FEATURE, 0x06);
   nrf.writeReg(nrf.DYNPD, 0x3F);
 
-  
+  nrf.setReceiverAddress(['1', 'N', 'o', 'd', 'e']);
   nrf.writeMBReg(nrf.RX_ADDR_P0, ['1', 'N', 'o', 'd', 'e']);
   nrf.writeMBReg(nrf.RX_ADDR_P1, ['1', 'N', 'o', 'd', 'e']);
 
@@ -322,16 +349,17 @@ function onInit() {
   else
   {
     nrf.ModeTX();
+    /*
     setInterval(() => {
       let send = "Hello from ESP8266 on NodeMCU";
-      let result = nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], send, nrf.W_TX_PAYLOAD);
+      let result = nrf.SendPacket(null, send, nrf.W_TX_PAYLOAD);
       console.log("ESP send [" + send.length + "]: " + send + " -> " + result);
     }, 1000);
+    */
   }
 
-  printDetails();
+  //printDetails();
 }
 
-var sendValue = 0;
 onInit();
 
