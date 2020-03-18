@@ -64,7 +64,7 @@ function NRF(SPI, CSN, CE){
   this.DYNPD = 0x1C;
   this.W_TX_PAYLOAD = 0xA0;
   this.MAX_PACKET_LENGTH = 32;
-  this.PACKET_DATA_SIZE = 31;
+  this.PACKET_DATA_SIZE = 29;
 
   this.SPI = SPI;
   this.CSN = CSN;
@@ -194,7 +194,8 @@ function NRF(SPI, CSN, CE){
       @param writeType (W_TX_PAYLOAD, )
       @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
   */
-  //nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], "{version: 0.0}", nrf.W_TX_PAYLOAD);
+  //nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], "Hello from ESP", nrf.W_TX_PAYLOAD);
+  //nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], "Hello from ESP! bla bla bla", nrf.W_TX_PAYLOAD);
   this.SendPacket = function(receiverAddress, data, writeType){
     if(receiverAddress != null)
       nrf.setReceiverAddress(receiverAddress);
@@ -212,7 +213,7 @@ function NRF(SPI, CSN, CE){
 
     let en_dpl = this.readReg(this.FEATURE) & (1<<(2));
     if(!en_dpl){
-      let blank  = this.MAX_PACKET_LENGTH - packetLength;
+      let blank  = 32 - packetLength;
       while(blank--)
         SPI.send(0xFF);
     }
@@ -220,11 +221,8 @@ function NRF(SPI, CSN, CE){
     CSN.high();
     CE.high();
 
-    let s = 0;
-    for(let i = 0; i < 100; ++i)
-    {
-      s++;
-    }
+    let delay = 200;
+    while(delay--);
 
     CE.low();
 
@@ -250,10 +248,13 @@ function NRF(SPI, CSN, CE){
     @param data - data to send. [], ""
     @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
   */
-  //nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "{version: 2.0, mode: 1, D1: 1, D2: 1, D3: 1, D4: 1, D5: 1, D6: 1, D7: 1, D8: 1, D8: 0}");
+  //nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "{version: 2.0, mode: 1, D1: 1, D2: 1, D3: 1, D4: 1, D5: 1, D6: 1, D7: 1, D8: 1, D8: 0, D9: 1}");
   //nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "{version: 2.0, mode: 1}\n");
   this.SendMessage = function(receiverAddress, data){
     nrf.setReceiverAddress(receiverAddress);
+
+    if(data[data.length - 1] != '\n')
+      data += '\n';
 
     let dataLength = data.length;
     let amountPackets = Math.ceil(dataLength / nrf.PACKET_DATA_SIZE);
@@ -265,8 +266,12 @@ function NRF(SPI, CSN, CE){
       let currentData = data.slice(i * nrf.PACKET_DATA_SIZE, (i + 1) * nrf.PACKET_DATA_SIZE);
 
       console.log(i + ": [" + currentData.length + "] " + currentData);
-      nrf.SendPacket(null, currentData, nrf.W_TX_PAYLOAD);
+
+      if(!nrf.SendPacket(null, currentData, nrf.W_TX_PAYLOAD))
+        return -1;
     }
+
+    return 1;
   };
 }
 
@@ -342,7 +347,7 @@ function onInit() {
   nrf.writeReg(nrf.RF_SETUP, 0x27);
   nrf.toggleFeature();
   nrf.writeReg(nrf.FEATURE, 0x06);
-  nrf.writeReg(nrf.DYNPD, 0x3F);
+  nrf.writeReg(nrf.DYNPD, 0x3f);
 
   nrf.setReceiverAddress(['1', 'N', 'o', 'd', 'e']);
   nrf.writeMBReg(nrf.RX_ADDR_P0, ['1', 'N', 'o', 'd', 'e']);
@@ -380,6 +385,11 @@ function onInit() {
   }
 
   //printDetails();
+}
+
+
+function testM(){
+  return nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "Hello from ESPRUINO to STM32F103C8! 0123456789");
 }
 
 onInit();
