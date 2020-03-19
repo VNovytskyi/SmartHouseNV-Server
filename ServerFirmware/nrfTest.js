@@ -63,6 +63,7 @@ function NRF(SPI, CSN, CE){
   this.FEATURE = 0x1D;
   this.DYNPD = 0x1C;
   this.W_TX_PAYLOAD = 0xA0;
+  this.FIFO_STATUS = 0x17;
   this.MAX_PACKET_LENGTH = 32;
   this.PACKET_DATA_SIZE = 29;
 
@@ -70,7 +71,30 @@ function NRF(SPI, CSN, CE){
   this.CSN = CSN;
   this.CE = CE;
 
+  this.messageBuff = "";
+
   CE.low();
+
+  this.setDefaultSettings = function(){
+    CE.low();
+    nrf.writeReg(this.REG_STATUS, 0b1101110);
+    nrf.writeReg(nrf.EN_AA, 0x3F);
+    nrf.writeReg(nrf.EN_RXADDR, 0x03);
+    nrf.writeReg(nrf.SETUP_AW, 0x03);
+    nrf.writeReg(nrf.SETUP_RETR, 0x5F);
+    nrf.writeReg(nrf.RF_CH, 0x60);
+    nrf.writeReg(nrf.RF_SETUP, 0x27);
+    nrf.toggleFeature();
+    nrf.writeReg(nrf.FEATURE, 0x06);
+    nrf.writeReg(nrf.DYNPD, 0x3f);
+
+    nrf.setReceiverAddress(['1', 'N', 'o', 'd', 'e']);
+    nrf.writeMBReg(nrf.RX_ADDR_P0, ['1', 'N', 'o', 'd', 'e']);
+    nrf.writeMBReg(nrf.RX_ADDR_P1, ['1', 'N', 'o', 'd', 'e']);
+
+    nrf.writeReg(nrf.PW_P0, 0x20);
+    nrf.writeReg(nrf.PW_P1, 0x20);
+  };
 
   this.readReg = function(regAddr){
     let regValue = 0x00;
@@ -170,32 +194,47 @@ function NRF(SPI, CSN, CE){
     this.flushTX();
   };
 
-  this.GetPacket = function(length){
+  /*
+  
+  */
+  this.GetPacket = function(){
     CSN.low();
-
     SPI.send(this.R_RX_PAYLOAD);
-    let result = [];
-    while(length--)
-      result.push(SPI.send(0xFF));
+
+    let dataLength = SPI.send(0xFF);
+
+    if(dataLength == 0xFF){
+      return -1;
+    }
+
+    let result = "";
+    while(dataLength--)
+      result += String.fromCharCode(SPI.send(0xFF));
+
+    let en_dpl = this.readReg(this.FEATURE) & (1<<(2));
+    if(!en_dpl){
+      let blank  = 32 - dataLength;
+      while(blank--)
+        SPI.send(0xFF);
+    }
 
     CSN.high();
     this.writeReg(nrf.REG_STATUS, (1<<(6)) | (1<<(4)) | (1<<(5)));
     return result;
   };
 
+
   this.IsAvailablePacket = function(){
-    return !(nrf.readReg(0x17) & (1<<(0)));
+    return !(this.readReg(0x17) & (1<<(0)));
   };
 
   /*
-      @brief Send packet to destination
+      @brief Send packet to   destination
       @param receiverAddress
       @param data - data to send. [], ""
       @param writeType (W_TX_PAYLOAD, )
       @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
   */
-  //nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], "Hello from ESP", nrf.W_TX_PAYLOAD);
-  //nrf.SendPacket(['1', 'N', 'o', 'd', 'e'], "Hello from ESP! bla bla bla", nrf.W_TX_PAYLOAD);
   this.SendPacket = function(receiverAddress, data, writeType){
     if(receiverAddress != null)
       nrf.setReceiverAddress(receiverAddress);
@@ -221,7 +260,7 @@ function NRF(SPI, CSN, CE){
     CSN.high();
     CE.high();
 
-    let delay = 200;
+    let delay = 400;
     while(delay--);
 
     CE.low();
@@ -242,35 +281,33 @@ function NRF(SPI, CSN, CE){
     return -1;
   };
 
+
   /*
     @brief: Organization of a complete dispatch cycle
     @param receiverAddress
     @param data - data to send. [], ""
     @retval 1 - successful send, 0 - unsuccessful send, -1 - error in function
   */
-  //nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "{version: 2.0, mode: 1, D1: 1, D2: 1, D3: 1, D4: 1, D5: 1, D6: 1, D7: 1, D8: 1, D8: 0, D9: 1}");
-  //nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "{version: 2.0, mode: 1}\n");
   this.SendMessage = function(receiverAddress, data){
-    nrf.setReceiverAddress(receiverAddress);
+    this.ModeTX();
+    this.setReceiverAddress(receiverAddress);
 
     if(data[data.length - 1] != '\n')
       data += '\n';
 
     let dataLength = data.length;
-    let amountPackets = Math.ceil(dataLength / nrf.PACKET_DATA_SIZE);
-
-    console.log("dataLength: " + dataLength);
-    console.log("amountPackets: " + amountPackets);
+    let amountPackets = Math.ceil(dataLength / this.PACKET_DATA_SIZE);
 
     for(let i = 0; i < amountPackets; ++i){
-      let currentData = data.slice(i * nrf.PACKET_DATA_SIZE, (i + 1) * nrf.PACKET_DATA_SIZE);
+      let currentData = data.slice(i * this.PACKET_DATA_SIZE, (i + 1) * this.PACKET_DATA_SIZE);
 
-      console.log(i + ": [" + currentData.length + "] " + currentData);
-
-      if(!nrf.SendPacket(null, currentData, nrf.W_TX_PAYLOAD))
+      if(!this.SendPacket(null, currentData, this.W_TX_PAYLOAD)){
+        this.ModeRX();
         return -1;
+      }
     }
 
+    this.ModeRX();
     return 1;
   };
 }
@@ -338,51 +375,22 @@ function printDetails(){
 */
 
 function onInit() {
-  CE.low();
-  nrf.writeReg(nrf.EN_AA, 0x3F);
-  nrf.writeReg(nrf.EN_RXADDR, 0x03);
-  nrf.writeReg(nrf.SETUP_AW, 0x03);
-  nrf.writeReg(nrf.SETUP_RETR, 0x5F);
-  nrf.writeReg(nrf.RF_CH, 0x60);
-  nrf.writeReg(nrf.RF_SETUP, 0x27);
-  nrf.toggleFeature();
-  nrf.writeReg(nrf.FEATURE, 0x06);
-  nrf.writeReg(nrf.DYNPD, 0x3f);
+  nrf.setDefaultSettings();
 
-  nrf.setReceiverAddress(['1', 'N', 'o', 'd', 'e']);
-  nrf.writeMBReg(nrf.RX_ADDR_P0, ['1', 'N', 'o', 'd', 'e']);
-  nrf.writeMBReg(nrf.RX_ADDR_P1, ['1', 'N', 'o', 'd', 'e']);
+  nrf.ModeRX();
 
-  nrf.writeReg(nrf.PW_P0, 0x20);
-  nrf.writeReg(nrf.PW_P1, 0x20);
+  //TODO: setWatch
+  setInterval(() => {
+    if(nrf.IsAvailablePacket()){
+      nrf.messageBuff += nrf.GetPacket();
 
-  let rxMode = false;
-
-  if(rxMode)
-  {
-    nrf.ModeRX();
-
-    setInterval(() => {
-      if(nrf.IsAvailablePacket())
+      if(nrf.messageBuff.indexOf("\n") !== -1)
       {
-        let data = nrf.GetPacket(10);
-        let status = nrf.readReg(nrf.REG_STATUS);
-        console.log("ESP get: " + data);
+        console.log("ESP get message: [" + nrf.messageBuff.length + "]: " + nrf.messageBuff);
+        nrf.messageBuff = "";
       }
-    }, 1000);
-  }
-  else
-  {
-    nrf.ModeTX();
-
-    /*
-    setInterval(() => {
-      let send = "Hello from ESP8266 on NodeMCU";
-      let result = nrf.SendPacket(null, send, nrf.W_TX_PAYLOAD);
-      console.log("ESP send [" + send.length + "]: " + send + " -> " + result);
-    }, 1000);
-    */
-  }
+    }
+  }, 1);
 
   //printDetails();
 }
