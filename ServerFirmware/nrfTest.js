@@ -292,9 +292,6 @@ function NRF(SPI, CSN, CE){
     this.ModeTX();
     this.setReceiverAddress(receiverAddress);
 
-    if(data[data.length - 1] != '\n')
-      data += '\n';
-
     let dataLength = data.length;
     let amountPackets = Math.ceil(dataLength / this.PACKET_DATA_SIZE);
 
@@ -390,7 +387,7 @@ function onInit() {
         nrf.messageBuff = "";
       }
     }
-  }, 1);
+  }, 10);
 
   //printDetails();
 }
@@ -398,6 +395,26 @@ function onInit() {
 
 function testM(){
   return nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], "Hello from ESPRUINO to STM32F103C8! 0123456789");
+}
+
+function buildInLedOn(){
+  return nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], [0x01]);
+}
+function buildInLedOff(){
+  return nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], [0x02]);
+}
+
+function testLeds(){
+  var i = 0x00;
+  setInterval(()=>{
+    console.log(i);
+    if(i < 0x22)
+      ++i;
+    else 
+      i = 0x00;
+
+  nrf.SendMessage(['1', 'N', 'o', 'd', 'e'], [i]);
+  }, 1000);
 }
 
 onInit();
