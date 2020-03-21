@@ -1,48 +1,14 @@
 const wifi = require("Wifi");
-const storage = require("Storage");
-const WebSocket = require("ws");
-
-const homeLocation = {
-  BEDROOM: 0,
-  HALL: 1,
-  BATHROOM: 2,
-  KITCHEN: 3
-};
-
-const deviceType = {
-  SOCKET: 0,
-  LIGHT: 1,
-  WATERTAP: 2,
-  LOUVERS: 3,
-  VENTILATION: 4
-};
-
-class Device{
-  constructor(name, location, type){
-    this.name = name;
-    this.location = location;
-    this.type = type;
-  }
-}
-
-
-/*
-  NodeMCU ESPRUINO
-    D0      D16
-    D1      D5
-    D4      D2
-
-*/
 
 //----------------------------------------------------------
 class MyPin{
   constructor(pin, reverse){
     this.pin = pin;
     this.reverse = reverse;
-    this.off();
+    this.low();
   }
 
-  on(){
+  high(){
     if(this.reverse)
       this.pin.reset();
     else
@@ -51,7 +17,7 @@ class MyPin{
     this.state = "on";
   }
 
-  off(){
+  low(){
     if(this.reverse)
       this.pin.set();
     else
@@ -67,56 +33,43 @@ class MyPin{
   setState(state){
     this.state = state;
     if(state == "off")
-      this.off();
+      this.low();
     else
-      this.on();
+      this.high();
   }
 }
 
 const buildInLed = new MyPin(D2, true); // D2 = NodeMCU.D4
-const lamp = new MyPin(D16);
-const vent = new MyPin(D5);
 
 
-//----------------------------------------------------------
 
-const WIFI_NAME = "MERCUSYS_7EBA";
-const WIFI_OPTIONS = {
-  password: "3105vlad3010vlada"
-};
 
-var counter = 0;
+
+//------------------------- Серверная часть -------------------------
+
+
+//Массив клиентов
 var clients = [];
 
+//Счетчик клиентов. Для ограничения к-ва подлюченных клиентов
+var clientsCounter = 0;
+
+/*
+  Обработчик web-socket'a
+*/
 function wsHandler(ws)
 {
   clients.push(ws);
-
-  //console.log("New client");
 
   ws.on('message', message => {
     broadcast(message);
 
     let arrMessage = JSON.parse(message);
-    //console.log(arrMessage);
 
     arrMessage.forEach(element => {
       switch(element.name)
       {
         case "buildInLed": buildInLed.setState(element.value); break;
-        case "lamp":  lamp.setState(element.value); break;
-
-        case "myRange":
-          let value = element.value / 100.0;
-
-          if(value < 0.1)
-            value = 0;
-          if(value > 0.9)
-            value = 1;
-
-          analogWrite(vent, value);
-
-          break;
 
         default: console.log("Input message name error: " + element.name);
       }
@@ -124,8 +77,7 @@ function wsHandler(ws)
   });
 
   ws.on('close', evt => {
-    //console.log("Disconnect client");
-    var x = clients.indexOf(ws);
+    let x = clients.indexOf(ws);
     if (x > -1) {
       clients.splice(x, 1);
     }
@@ -135,26 +87,24 @@ function wsHandler(ws)
     console.log(event);
   });
 
-  //TODO: отправить новому клиенту состояние всех 'ножек' (ввести его в курс дела)
   bringUpToDate(ws);
 }
 
-function serverHandler(req, res)
+/*
+  Обработчик http-сервера
+*/
+function httpServerHandler(req, res)
 {
-  console.log(" ");
-  console.log("################## " + ++counter + " ##################");
-
   res.writeHead(200, {'Content-Type': 'text/html'});
 
-  const urlObj = url.parse(req.url, true);
-  console.log(urlObj.pathname);
+  let urlObj = url.parse(req.url, true);
 
   switch(urlObj.pathname)
   {
     case "/":
     case "/home":
-      //TODO: залить новый файл
-      res.end(storage.read("MainPage"));
+      //res.end(storage.read("MainPage"));
+      res.end("Home Page");
       break;
 
     case "/settings":
@@ -167,17 +117,26 @@ function serverHandler(req, res)
   }
 }
 
+/*
+  Отсылает всем подключенным пользователям сообщение
+*/
 function broadcast(msg) {
   clients.forEach(cl => cl.send(msg));
 }
 
+/*
+  Запуск http-сервера и web-socket'а
+*/
 function startServer()
 {
-  const s = require('ws').createServer(serverHandler);
+  const s = require('ws').createServer(httpServerHandler);
   s.on('websocket', wsHandler);
   s.listen(80);
 }
 
+/*
+  Отправляет новому клиенту текущее состояние системы (вводит его в курс дела)
+*/
 function bringUpToDate(ws)
 {
   let commandsArr = [];
@@ -187,19 +146,13 @@ function bringUpToDate(ws)
 	value: buildInLed.getState()
   });
 
-  commandsArr.push({
-    name: "lamp",
-	value: lamp.getState()
-  });
-
-  //TODO: Send range value
-
-  let commandsArrJSON = JSON.stringify(commandsArr);
-  //console.log("Send bringUpToDate: " + commandsArrJSON);
-  ws.send(commandsArrJSON);
+  ws.send(JSON.stringify(commandsArr));
 }
 
-wifi.connect(WIFI_NAME, WIFI_OPTIONS, err => {
+/*
+  Подключение к точке доступа
+*/
+wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
   if (err !== null) {
     throw err;
   }
@@ -208,7 +161,6 @@ wifi.connect(WIFI_NAME, WIFI_OPTIONS, err => {
     if (err !== null) {
       throw err;
     }else {
-      print("http://" + info.ip);
       startServer();
     }
   });

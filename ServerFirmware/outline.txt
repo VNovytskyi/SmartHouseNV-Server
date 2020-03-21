@@ -1,0 +1,34 @@
+//const storage = require("Storage");
+
+/*
+const homeLocation = {
+  BEDROOM: 0,
+  HALL: 1,
+  BATHROOM: 2,
+  KITCHEN: 3
+};
+
+const deviceType = {
+  SOCKET: 0,
+  LIGHT: 1,
+  WATERTAP: 2,
+  LOUVERS: 3,
+  VENTILATION: 4
+};
+
+class Device{
+  constructor(name, location, type){
+    this.name = name;
+    this.location = location;
+    this.type = type;
+  }
+}
+*/
+
+/*
+  NodeMCU ESPRUINO
+    D0      D16
+    D1      D5
+    D4      D2
+
+*/

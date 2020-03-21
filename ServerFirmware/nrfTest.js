@@ -390,6 +390,7 @@ function onInit() {
   }, 10);
 
   //printDetails();
+  console.log("Ready!");
 }
 
 
