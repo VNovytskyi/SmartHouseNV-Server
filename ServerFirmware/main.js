@@ -7,11 +7,11 @@ var portD = 0x00;
 SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
 //TODO: добавить IRQ пин
-const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D2);
+const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1, NodeMCU.D0);
 
 function InitNRF() {
   //rx tx
-  nrf.init(['2', 'N', 'o', 'd', 'e'], ['1', 'N', 'o', 'd', 'e']);
+  nrf.init([0, 'N', 'o', 'd', 'e'], [1, 'N', 'o', 'd', 'e']);
   nrf.setReg(0x01, 0x3F);
   nrf.setReg(0x02, 0x03);
   nrf.setReg(0x03, 0x03);
@@ -23,11 +23,21 @@ function InitNRF() {
 
   setInterval(function() {
     while (nrf.getDataPipe() !== undefined) {
+      let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
-      console.log(data);
+      console.log(dataPipe + ": " + data);
     }
   }, 50);
 
+/*
+  pinMode(D0, 'input');
+  setWatch(()=>{
+    let dataPipe = nrf.getDataPipe();
+    let data = nrf.getData();
+    console.log(dataPipe + ": " + data);
+
+  }, D0, {repeat:true, edge: 'falling'});
+*/
   console.log("NRF Ready");
 }
 
@@ -175,6 +185,9 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
       startServer();
       console.log("Server Ready");
       console.log("Launch completed");
+      setInterval(()=>{
+       D2.toggle();
+      }, 1000);
     }
   });
 });

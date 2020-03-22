@@ -38,11 +38,116 @@
 			cursor: pointer; /* Cursor on hover */
 		}
 
-		.slider::-moz-range-thumb {
+		#myRange::-moz-range-thumb {
 			width: 25px; /* Set a specific slider handle width */
 			height: 25px; /* Slider handle height */
 			background: #4CAF50; /* Green background */
 			cursor: pointer; /* Cursor on hover */
+		}
+
+		#myRange {
+			-webkit-appearance: none;
+			width: 100%;
+			margin: 13.8px 0;
+		}
+
+		#myRange:focus {
+			outline: none;
+		}
+
+		#myRange::-webkit-slider-runnable-track {
+			width: 100%;
+			height: 8.4px;
+			cursor: pointer;
+			box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+			border-radius: 1.3px;
+			border: 0.2px solid #010101;
+		}
+
+		#myRange::-webkit-slider-thumb {
+			box-shadow: 0px 0px 1px #000000, 0px 0px 0px #0d0d0d;
+			border: 0.2px solid #1b2d00;
+			height: 36px;
+			width: 16px;
+			border-radius: 3px;
+			background: rgba(255, 255, 255, 0.836);
+			cursor: pointer;
+			-webkit-appearance: none;
+			margin-top: -14px;
+		}
+
+		#myRange:focus::-webkit-slider-runnable-track {
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+		}
+
+		#myRange::-moz-range-track {
+			width: 100%;
+			height: 8.4px;
+			cursor: pointer;
+			box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+			border-radius: 1.3px;
+			border: 0.2px solid #010101;
+		}
+		#myRange::-moz-range-thumb {
+			box-shadow: 0px 0px 1px #000000, 0px 0px 0px #0d0d0d;
+			border: 0.2px solid #1b2d00;
+			height: 36px;
+			width: 16px;
+			border-radius: 3px;
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+			cursor: pointer;
+		}
+
+		#myRange::-ms-track {
+			width: 80%;
+			height: 8.4px;
+			cursor: pointer;
+			background: transparent;
+			border-color: transparent;
+			color: transparent;
+		}
+
+		#myRange::-ms-fill-lower {
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+			border: 0.2px solid #010101;
+			border-radius: 2.6px;
+			box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+		}
+
+		#myRange::-ms-fill-upper {
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right, red, orange , yellow, green, cyan, blue, violet);
+			border: 0.2px solid #010101;
+			border-radius: 2.6px;
+			box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d;
+		}
+
+		#myRange::-ms-thumb {
+			box-shadow: 0px 0px 1px #000000, 0px 0px 0px #0d0d0d;
+			border: 0.2px solid #1b2d00;
+			height: 36px;
+			width: 16px;
+			border-radius: 3px;
+			background: rgba(105, 89, 112, 0.87);
+			cursor: pointer;
+			height: 8.4px;
+		}
+
+		#myRange:focus::-ms-fill-lower {
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right,  red, orange , yellow, green, cyan, blue, violet);
+		}
+
+		#myRange:focus::-ms-fill-upper {
+			background: -moz-linear-gradient(right,  red, orange , yellow, green, cyan, blue, violet); 
+			background: linear-gradient(to right, red, orange , yellow, green, cyan, blue, violet);
 		}
 	</style>
 </head>
@@ -81,7 +186,7 @@
 							<h5 class="card-title">Вентиляция</h5>
 							<div id="debug"></div>
 							<div class="slidecontainer">
-								<input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+								<input type="range" min="1" max="100" value="50" class="slider">
 							</div>
 						</div>
 					</div>
@@ -104,7 +209,7 @@
               		<div class="card">
 						<div class="card-body mt-1 ">
 							<h5 class="card-title ">RGB подсветка</h5>
-							<input type="color">
+							<input type="range" name="" id="myRange">
 							<p class="card-text"></p>
 							
 							<button type="button" class="btn btn-success" onclick="sendCommand('buildInLed=on')">Вкл</button>
