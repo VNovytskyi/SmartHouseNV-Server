@@ -1,49 +1,41 @@
-const wifi = require("Wifi");
+console.log("Launching...");
 
-//----------------------------------------------------------
-class MyPin{
-  constructor(pin, reverse){
-    this.pin = pin;
-    this.reverse = reverse;
-    this.low();
-  }
-
-  high(){
-    if(this.reverse)
-      this.pin.reset();
-    else
-      this.pin.set();
-
-    this.state = "on";
-  }
-
-  low(){
-    if(this.reverse)
-      this.pin.set();
-    else
-      this.pin.reset();
-
-    this.state = "off";
-  }
-
-  getState(){
-    return this.state;
-  }
-
-  setState(state){
-    this.state = state;
-    if(state == "off")
-      this.low();
-    else
-      this.high();
-  }
-}
-
-const buildInLed = new MyPin(D2, true); // D2 = NodeMCU.D4
+var portD = 0x00;
 
 //------------------------- NRF часть -------------------------
 
+SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
+//TODO: добавить IRQ пин
+const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D2);
+
+function InitNRF() {
+  //rx tx
+  nrf.init(['2', 'N', 'o', 'd', 'e'], ['1', 'N', 'o', 'd', 'e']);
+  nrf.setReg(0x01, 0x3F);
+  nrf.setReg(0x02, 0x03);
+  nrf.setReg(0x03, 0x03);
+  nrf.setReg(0x04, 0x5F);
+  nrf.setChannel(0x60);
+  nrf.setReg(0x06, 0x27);
+  nrf.setReg(0x1C, 0x3F);
+  nrf.setReg(0x1D, 0x06);
+
+  setInterval(function() {
+    while (nrf.getDataPipe() !== undefined) {
+      let data = nrf.getData();
+      console.log(data);
+    }
+  }, 50);
+
+  console.log("NRF Ready");
+}
+
+InitNRF();
+
+
+//nrf.sendString([0x01, 0x01]);
+//nrf.send([0x01, 0x02]);
 
 
 
@@ -52,6 +44,7 @@ const buildInLed = new MyPin(D2, true); // D2 = NodeMCU.D4
 
 //------------------------- Серверная часть -------------------------
 
+const wifi = require("Wifi");
 
 //Массив клиентов
 var clients = [];
@@ -74,7 +67,17 @@ function wsHandler(ws)
     arrMessage.forEach(element => {
       switch(element.name)
       {
-        case "buildInLed": buildInLed.setState(element.value); break;
+        case "buildInLed":
+          if(element.value == "off"){
+             nrf.send([0x01, 0x02]);
+             portD &= ~(1 << 0);
+          }
+          else{
+            nrf.send([0x01, 0x01]);
+            portD |= (1 << 0);
+          }
+
+        break;
 
         default: console.log("Input message name error: " + element.name);
       }
@@ -86,6 +89,7 @@ function wsHandler(ws)
     if (x > -1) {
       clients.splice(x, 1);
     }
+    console.log("Free memory: " + process.memory().free);
   });
 
   ws.on('error', event => {
@@ -93,6 +97,8 @@ function wsHandler(ws)
   });
 
   bringUpToDate(ws);
+
+  console.log("Free memory: " + process.memory().free);
 }
 
 /*
@@ -148,7 +154,7 @@ function bringUpToDate(ws)
 
   commandsArr.push({
     name: "buildInLed",
-	value: buildInLed.getState()
+	value: portD & (1 << 0)? "on": "off"
   });
 
   ws.send(JSON.stringify(commandsArr));
@@ -166,11 +172,9 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
     if (err !== null) {
       throw err;
     }else {
-      console.log("Server Ready!");
       startServer();
+      console.log("Server Ready");
+      console.log("Launch completed");
     }
   });
 });
-
-
-console.log(process.memory());

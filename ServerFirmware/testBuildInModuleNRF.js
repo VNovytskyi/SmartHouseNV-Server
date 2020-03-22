@@ -1,3 +1,4 @@
+/*
 function printDetails(){
   let status = nrf.getStatus();
   let RX_DR = (status & (1 << (6)))? 1:0;
@@ -55,6 +56,7 @@ function printDetails(){
   console.log("CRC Length: " + LengthCRC);
   console.log("PA Power: " + PowerAmplifier);
 }
+*/
 
 SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
@@ -73,7 +75,7 @@ function onInit() {
   nrf.setReg(0x06, 0x27);
   nrf.setReg(0x1C, 0x3F);
   nrf.setReg(0x1D, 0x06);
-  printDetails();
+  //printDetails();
 
   setInterval(function() {
   while (nrf.getDataPipe() !== undefined) {
