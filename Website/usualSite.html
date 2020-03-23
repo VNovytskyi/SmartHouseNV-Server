@@ -168,15 +168,15 @@
               		<div class="card">
 						<div class="card-body mt-1">
 							<h5 class="card-title ">Главный свет</h5>
-							<button id="buildInLed" type="button" class="btn btn-success">Включить</button>
+							<button id="A0" type="button" class="btn btn-success">Включить</button>
 						</div>
               		</div>
             	</div>
 				<div class="col-md">
 					<div class="card">
 						<div class="card-body mt-1">
-							<h5 class="card-title ">Светильники</h5>
-							<button id="lamp" type="button" class="btn btn-success">Включить</button>
+							<h5 class="card-title ">Светильник</h5>
+							<button id="A1" type="button" class="btn btn-success">Включить</button>
 						</div>
 					</div>
 				</div>
@@ -186,7 +186,7 @@
 							<h5 class="card-title">Вентиляция</h5>
 							<div id="debug"></div>
 							<div class="slidecontainer">
-								<input type="range" min="1" max="100" value="50" class="slider">
+								<input id="B0" type="range" min="1" max="100" value="50" class="slider">
 							</div>
 						</div>
 					</div>
@@ -195,9 +195,8 @@
 					<div class="card">
 						<div class="card-body mt-1">
 							<h5 class="card-title">Шторы</h5>
-							<!-- TODO: Шкала прогресса открытия штор.  -->
+							<!-- TODO: Шкала прогресса открытия штор. После открытия кнопка меняется на 'Закрыть'  -->
 							<button type="button" class="btn btn-success mt-1">Открыть</button>
-							<button type="button" class="btn btn-danger mt-1  ml-2">Закрыть</button>
 						</div>
 					</div>
 				</div>
@@ -212,8 +211,7 @@
 							<input type="range" name="" id="myRange">
 							<p class="card-text"></p>
 							
-							<button type="button" class="btn btn-success" onclick="sendCommand('buildInLed=on')">Вкл</button>
-							<button type="button" class="btn btn-danger ml-2" onclick="sendCommand('buildInLed=off')">Выкл</button>
+							<button type="button" class="btn btn-success">Включить</button>
 						</div>
               		</div>
             	</div>
@@ -259,9 +257,9 @@
 			
 				switch(target.id)
 				{
-					case "buildInLed": buttonToggle(target, element.value); break;
-					case "lamp": buttonToggle(target, element.value); break;
-					case "myRange": target.value = element.value; break;
+					case "A0": buttonToggle(target, element.value); break;
+					case "A1": buttonToggle(target, element.value); break;
+					case "B0": target.value = element.value; break;
 					
 					default: console.log("Invalid target id (" + target.id + ")");
 			}
@@ -294,7 +292,7 @@
 				case "range":
 					commandsArr.push({
 						name: currentTarget.id,
-						value: currentTarget.value
+						value: currentTarget.value < 5? 0: currentTarget.value
 					});
 					
 					break;

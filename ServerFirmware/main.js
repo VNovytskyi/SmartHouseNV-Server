@@ -1,13 +1,13 @@
 console.log("Launching...");
 
-var portD = 0x00;
+var portA = 0x00;
 
 //------------------------- NRF часть -------------------------
 
 SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
 //TODO: добавить IRQ пин
-const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1, NodeMCU.D0);
+const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1);
 
 function InitNRF() {
   //rx tx
@@ -44,10 +44,20 @@ function InitNRF() {
 InitNRF();
 
 
-//nrf.sendString([0x01, 0x01]);
-//nrf.send([0x01, 0x02]);
+// BuildInLed off: nrf.send([0x01, 0x02]);
+// BuildInLed on: nrf.send([0x01, 0x01]);
 
+//P0
+//nrf.send([0x03, 0x23, 0xff, 0xff]);
+//nrf.send([0x01, 0x24]);
 
+//P1
+//nrf.send([0x03, 0x25, 0xff, 0xff]);
+//nrf.send([0x01, 0x26]);
+
+//P2
+//nrf.send([0x03, 0x27, 0xff, 0xff]);
+//nrf.send([0x01, 0x28]);
 
 
 
@@ -75,21 +85,39 @@ function wsHandler(ws)
     let arrMessage = JSON.parse(message);
 
     arrMessage.forEach(element => {
-      switch(element.name)
-      {
-        case "buildInLed":
+      let port = element.name[0];
+      let pin = Number(element.name.slice(1));
+      let cmd = 0x00;
+      switch(port){
+        case 'A':
+          cmd = 3 + 2 * pin;
+
           if(element.value == "off"){
-             nrf.send([0x01, 0x02]);
-             portD &= ~(1 << 0);
+             ++cmd;
+             portA &= ~(1 << pin);
           }
           else{
-            nrf.send([0x01, 0x01]);
-            portD |= (1 << 0);
+             portA |= (1 << pin);
           }
 
-        break;
+          nrf.send([0x01, cmd]);
+          break;
 
-        default: console.log("Input message name error: " + element.name);
+        case 'B':
+          cmd = 0x23 + 0x02 * pin;
+
+          if(element.value == 0){
+            nrf.send([0x01, ++cmd]);
+          }
+          else{
+            let value = element.value * 655;
+            nrf.send([0x03, cmd, value >> 8, value & 0b0000000011111111]);
+            console.log(cmd + ", " + (value >> 8) + ", " + value & 0b0000000011111111);
+          }
+          break;
+
+        default:
+          console.log("Input message name error: " + element.name + " -> " + element.value);
       }
     });
   });
@@ -124,6 +152,7 @@ function httpServerHandler(req, res)
   {
     case "/":
     case "/home":
+      //TODO: Загрузить новую страницу
       //res.end(storage.read("MainPage"));
       res.end("Home Page");
       break;
@@ -162,10 +191,14 @@ function bringUpToDate(ws)
 {
   let commandsArr = [];
 
-  commandsArr.push({
-    name: "buildInLed",
-	value: portD & (1 << 0)? "on": "off"
-  });
+  for(let i = 0; i < 16; ++i){
+    let str = "A";
+
+    commandsArr.push({
+      name: str + i,
+      value: portA & (1 << 0)? "on": "off"
+    });
+  }
 
   ws.send(JSON.stringify(commandsArr));
 }
@@ -173,6 +206,7 @@ function bringUpToDate(ws)
 /*
   Подключение к точке доступа
 */
+console.log("Connecting to access point...");
 wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
   if (err !== null) {
     throw err;
@@ -182,6 +216,7 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
     if (err !== null) {
       throw err;
     }else {
+      console.log("Connecting to access point successfully");
       startServer();
       console.log("Server Ready");
       console.log("Launch completed");
