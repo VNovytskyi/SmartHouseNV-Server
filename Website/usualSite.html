@@ -271,28 +271,45 @@
 		};
 		
 		document.body.addEventListener("click", eventsHandler, false);
-		//document.body.addEventListener("change", eventsHandler, false);
+		
+		//Большая нагрузка
+		//document.body.addEventListener("change", eventsHandler, false); 
 
 		function eventsHandler(event)
 		{
 			let currentTarget = event.target;
 			let commandsArr = [];
+			let homeLocation;
 
 			console.log("Event");
+
+			if(currentTarget.closest("#bedroom"))
+				homeLocation = "bedroom";
+
+			if(currentTarget.closest("#hall"))
+				homeLocation = "hall";
+
+			if(currentTarget.closest("#bathroom"))
+				homeLocation = "bathroom";
+
+			if(currentTarget.closest("#kitchen"))
+				homeLocation = "kichen";
 
 			switch(currentTarget.type)
 			{
 				case "button":		
 					commandsArr.push({
-						name: currentTarget.id,
-						value: currentTarget.innerHTML == "Выключить" ? "off":"on"
+						"homeLocation": homeLocation,
+						"name": currentTarget.id,
+						"value": currentTarget.innerHTML == "Выключить" ? "off":"on"
 					});
 					break;
 
 				case "range":
 					commandsArr.push({
-						name: currentTarget.id,
-						value: currentTarget.value < 5? 0: currentTarget.value
+						"homeLocation": homeLocation,
+						"name": currentTarget.id,
+						"value": currentTarget.value < 5? 0: currentTarget.value
 					});
 					
 					break;

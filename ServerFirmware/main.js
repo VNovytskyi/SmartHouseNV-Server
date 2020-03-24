@@ -2,16 +2,28 @@ console.log("Launching...");
 
 var portA = 0x00;
 
+var currentCommand;
+var currentMessage;
+
 //------------------------- NRF часть -------------------------
 
 SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
-//TODO: добавить IRQ пин
 const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1);
 
+function nrfGetMessage(data){
+  let dataLength = data[0];
+  let arr = [];
+
+  for(let i = 1; i < dataLength + 1; ++i)
+    arr.push(data[i]);
+
+  return arr;
+}
+
 function InitNRF() {
-  //rx tx
-  nrf.init([0, 'N', 'o', 'd', 'e'], [1, 'N', 'o', 'd', 'e']);
+  //rx, tx
+  nrf.init([1, 1, 1, 1, 1], [2, 1, 1, 1, 1]);
   nrf.setReg(0x01, 0x3F);
   nrf.setReg(0x02, 0x03);
   nrf.setReg(0x03, 0x03);
@@ -25,19 +37,19 @@ function InitNRF() {
     while (nrf.getDataPipe() !== undefined) {
       let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
-      console.log(dataPipe + ": " + data);
+
+      let msg = nrfGetMessage(data);
+      //console.log(dataPipe + ": " + msg);
+
+      if(currentCommand.toString() == msg.toString()){
+        broadcast(currentMessage);
+      }else{
+        console.log("[ ERROR ] Received command did not match with transmitted!");
+        console.log(currentCommand + " | " + msg);
+      }
     }
   }, 50);
 
-/*
-  pinMode(D0, 'input');
-  setWatch(()=>{
-    let dataPipe = nrf.getDataPipe();
-    let data = nrf.getData();
-    console.log(dataPipe + ": " + data);
-
-  }, D0, {repeat:true, edge: 'falling'});
-*/
   console.log("NRF Ready");
 }
 
@@ -72,6 +84,7 @@ var clients = [];
 //Счетчик клиентов. Для ограничения к-ва подлюченных клиентов
 var clientsCounter = 0;
 
+
 /*
   Обработчик web-socket'a
 */
@@ -80,19 +93,31 @@ function wsHandler(ws)
   clients.push(ws);
 
   ws.on('message', message => {
-    broadcast(message);
+    //TODO: отправлять broadcast после приема пакета от исполняющего хаба + установить доступный интервал ответа
+    currentMessage = message;
+    //broadcast(message);
 
     let arrMessage = JSON.parse(message);
 
-    arrMessage.forEach(element => {
-      let port = element.name[0];
-      let pin = Number(element.name.slice(1));
+    console.log(arrMessage);
+
+    for(let i = 0; i < arrMessage.length; ++i){
+
+      //Не работает
+      if(arrMessage[i].name == "homeLocation" && arrMessage[i].value == "bedroom"){
+        console.log("Set home location: bedroom");
+        continue;
+      }
+
+      let port = arrMessage[i].name[0];
+      let pin = Number(arrMessage[i].name.slice(1));
       let cmd = 0x00;
+
       switch(port){
         case 'A':
           cmd = 3 + 2 * pin;
 
-          if(element.value == "off"){
+          if(arrMessage[i].value == "off"){
              ++cmd;
              portA &= ~(1 << pin);
           }
@@ -101,25 +126,27 @@ function wsHandler(ws)
           }
 
           nrf.send([0x01, cmd]);
+          currentCommand = cmd;
           break;
 
         case 'B':
           cmd = 0x23 + 0x02 * pin;
 
-          if(element.value == 0){
+          if(arrMessage[i].value == 0){
             nrf.send([0x01, ++cmd]);
+            currentCommand = cmd;
           }
           else{
-            let value = element.value * 655;
-            nrf.send([0x03, cmd, value >> 8, value & 0b0000000011111111]);
-            console.log(cmd + ", " + (value >> 8) + ", " + value & 0b0000000011111111);
+            let value = arrMessage[i].value * 655;
+            nrf.send([0x03, cmd, value >> 8, value & 0xFF]);
+            currentCommand = [cmd, value >> 8, value & 0xFF];
           }
           break;
 
         default:
-          console.log("Input message name error: " + element.name + " -> " + element.value);
+          console.log("Input message name error: " + arrMessage[i].name + " -> " + arrMessage[i].value);
       }
-    });
+    }
   });
 
   ws.on('close', evt => {
