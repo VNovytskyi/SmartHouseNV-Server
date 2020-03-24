@@ -186,6 +186,7 @@
 							<h5 class="card-title">Вентиляция</h5>
 							<div id="debug"></div>
 							<div class="slidecontainer">
+								<!--TODO: Реализовать работу на телефоне. На событие click не реагирует-->
 								<input id="B0" type="range" min="1" max="100" value="50" class="slider">
 							</div>
 						</div>
@@ -247,22 +248,43 @@
 			console.log(event);
 		}
 
+		/*
+			Обработчик входящего сообщения
+		*/
 		ws.onmessage = event => {
+			console.log(event.data);
 			let commandArr = JSON.parse(event.data);
 			console.log("Input");
 			console.log(commandArr);
 			
 			commandArr.forEach(element => {
 				let target = document.getElementById(element.name);
-			
-				switch(target.id)
-				{
-					case "A0": buttonToggle(target, element.value); break;
-					case "A1": buttonToggle(target, element.value); break;
-					case "B0": target.value = element.value; break;
+				
+				//TODO: протестить
+				if(target != null){
+					switch(target.type){
+						case "button":
+							buttonToggle(target, element.value);
+						break;
+
+						case "range":
+							target.value = element.value;
+						break;
+					}
 					
-					default: console.log("Invalid target id (" + target.id + ")");
-			}
+					/*
+					switch(target.id)
+					{
+						case "A0": buttonToggle(target, element.value); break;
+						case "A1": buttonToggle(target, element.value); break;
+						case "B0": target.value = element.value; break;
+						
+						default: console.log("Invalid target id (" + target.id + ")");
+					}
+					*/
+				}else{
+					console.log("[ ERROR ] Target = null");
+				}
 			});
 		};
 
@@ -272,9 +294,11 @@
 		
 		document.body.addEventListener("click", eventsHandler, false);
 		
-		//Большая нагрузка
-		//document.body.addEventListener("change", eventsHandler, false); 
+ 
 
+		/*
+			Обрабатывает действие пользователя и отправляет его в формате JSON на сервер
+		*/
 		function eventsHandler(event)
 		{
 			let currentTarget = event.target;
@@ -283,6 +307,7 @@
 
 			console.log("Event");
 
+			//TODO: Массив локаций дома, который будет получен при bringUpToDate
 			if(currentTarget.closest("#bedroom"))
 				homeLocation = "bedroom";
 
@@ -295,8 +320,7 @@
 			if(currentTarget.closest("#kitchen"))
 				homeLocation = "kichen";
 
-			switch(currentTarget.type)
-			{
+			switch(currentTarget.type){
 				case "button":		
 					commandsArr.push({
 						"homeLocation": homeLocation,
@@ -318,8 +342,7 @@
 					console.log("Not handler: " + event.target + " - " + event.target.type);
 			}
 
-			if(commandsArr.length > 0)
-			{
+			if(commandsArr.length > 0){
 				commandsArrJSON = JSON.stringify(commandsArr);
 
 				console.log("Output:");
@@ -362,16 +385,12 @@
 			}
 		}
 
-		function buttonToggle(button, buttonMode)
-		{
-			if(buttonMode == "off")
-			{
+		function buttonToggle(button, buttonMode){
+			if(buttonMode == "off"){
 				removeClass(button, "btn-danger");
 				addClass(button, "btn-success");
 				button.innerHTML = "Включить";
-			}
-			else
-			{
+			} else{
 				removeClass(button, "btn-success");
 				addClass(button, "btn-danger");
 				button.innerHTML = "Выключить";

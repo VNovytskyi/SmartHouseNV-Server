@@ -1,6 +1,16 @@
 console.log("Launching...");
 
-var portA = 0x00;
+
+//------------------------- Storage часть -------------------------
+
+const storage = require("Storage");
+
+//TODO: Создать класс для каждой локации дома (localHub)
+// 16и разрядное число
+var portA = 0;
+
+// Массив значений порта B
+var portB = [0, 0, 0, 0, 0, 0];
 
 var currentCommand;
 var currentMessage;
@@ -93,9 +103,8 @@ function wsHandler(ws)
   clients.push(ws);
 
   ws.on('message', message => {
-    //TODO: отправлять broadcast после приема пакета от исполняющего хаба + установить доступный интервал ответа
+    //TODO:установить доступный интервал ответа
     currentMessage = message;
-    //broadcast(message);
 
     let arrMessage = JSON.parse(message);
 
@@ -135,9 +144,11 @@ function wsHandler(ws)
           if(arrMessage[i].value == 0){
             nrf.send([0x01, ++cmd]);
             currentCommand = cmd;
+             portB[pin] = 0;
           }
           else{
             let value = arrMessage[i].value * 655;
+            portB[pin] = arrMessage[i].value;
             nrf.send([0x03, cmd, value >> 8, value & 0xFF]);
             currentCommand = [cmd, value >> 8, value & 0xFF];
           }
@@ -212,18 +223,23 @@ function startServer()
 }
 
 /*
-  Отправляет новому клиенту текущее состояние системы (вводит его в курс дела)
+  Отправляет новому клиенту текущее состояние системы
 */
 function bringUpToDate(ws)
 {
   let commandsArr = [];
 
   for(let i = 0; i < 16; ++i){
-    let str = "A";
-
     commandsArr.push({
-      name: str + i,
-      value: portA & (1 << 0)? "on": "off"
+      name: "A" + i,
+      value: portA & (1 << i)? "on": "off"
+    });
+  }
+
+  for(let i = 0; i < 6; ++i){
+    commandsArr.push({
+      name: "B" + i,
+      value: portB[i]
     });
   }
 
@@ -247,6 +263,7 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
       startServer();
       console.log("Server Ready");
       console.log("Launch completed");
+
       setInterval(()=>{
        D2.toggle();
       }, 1000);
