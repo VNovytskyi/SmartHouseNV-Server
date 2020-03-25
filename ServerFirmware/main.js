@@ -6,6 +6,15 @@ console.log("Launching...");
 const storage = require("Storage");
 
 //TODO: Создать класс для каждой локации дома (localHub)
+function localHub (){
+  this.portA = 0;
+  this.portB = [0, 0, 0, 0, 0, 0];
+}
+
+let bedroom = localHub();
+
+
+
 // 16и разрядное число
 var portA = 0;
 
