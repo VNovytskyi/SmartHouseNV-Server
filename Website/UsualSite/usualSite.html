@@ -209,7 +209,8 @@
               		<div class="card">
 						<div class="card-body mt-1 ">
 							<h5 class="card-title ">RGB подсветка</h5>
-							<input type="range" name="" id="myRange">
+							<input type="color" name="" id="ColorRGB" value="#fd3cf8">
+							<!-- <input type="range" name="" id="ColorRGB"> -->
 							<p class="card-text"></p>
 							
 							<button type="button" class="btn btn-success">Включить</button>
@@ -237,7 +238,8 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
 	<script>
-		var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
+		//var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
+		var ws = new WebSocket('ws://192.168.1.102:80', 'protocolOne');
 
 		ws.onopen = (event) => {
 			console.log("WebSocket open");
@@ -252,15 +254,15 @@
 			Обработчик входящего сообщения
 		*/
 		ws.onmessage = event => {
-			console.log(event.data);
 			let commandArr = JSON.parse(event.data);
 			console.log("Input");
 			console.log(commandArr);
+
+			
 			
 			commandArr.forEach(element => {
 				let target = document.getElementById(element.name);
 				
-				//TODO: протестить
 				if(target != null){
 					switch(target.type){
 						case "button":
@@ -268,20 +270,13 @@
 						break;
 
 						case "range":
+						case "color":
 							target.value = element.value;
 						break;
+
+						default:
+							console.log("Not handler: " + target.type + " -> " + target.value);
 					}
-					
-					/*
-					switch(target.id)
-					{
-						case "A0": buttonToggle(target, element.value); break;
-						case "A1": buttonToggle(target, element.value); break;
-						case "B0": target.value = element.value; break;
-						
-						default: console.log("Invalid target id (" + target.id + ")");
-					}
-					*/
 				}else{
 					console.log("[ ERROR ] Target = null");
 				}
@@ -292,9 +287,14 @@
 			console.log("WebSocket close");
 		};
 		
-		document.body.addEventListener("click", eventsHandler, false);
-		
- 
+
+
+		document.getElementById("A0").addEventListener("click", eventsHandler, false);
+		document.getElementById("A1").addEventListener("click", eventsHandler, false);
+		document.getElementById("B0").addEventListener("input", eventsHandler, false);
+		document.getElementById("ColorRGB").addEventListener("change", eventsHandler, false);
+
+
 
 		/*
 			Обрабатывает действие пользователя и отправляет его в формате JSON на сервер
@@ -302,10 +302,7 @@
 		function eventsHandler(event)
 		{
 			let currentTarget = event.target;
-			let commandsArr = [];
 			let homeLocation;
-
-			console.log("Event");
 
 			//TODO: Массив локаций дома, который будет получен при bringUpToDate
 			if(currentTarget.closest("#bedroom"))
@@ -320,6 +317,8 @@
 			if(currentTarget.closest("#kitchen"))
 				homeLocation = "kichen";
 
+
+			let commandsArr = [];
 			switch(currentTarget.type){
 				case "button":		
 					commandsArr.push({
@@ -335,7 +334,14 @@
 						"name": currentTarget.id,
 						"value": currentTarget.value < 5? 0: currentTarget.value
 					});
-					
+					break;
+
+				case "color":
+					commandsArr.push({
+						"homeLocation": homeLocation,
+						"name": currentTarget.id,
+						"value": currentTarget.value < 5? 0: currentTarget.value
+					});
 					break;
 
 				default:
