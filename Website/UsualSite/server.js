@@ -91,6 +91,7 @@ function mainPage(){
             </head>\
             <body class="pt-5">';
     
+    //TODO: Изменить на новый navbar
     page += '<nav aria-label="breadcrumb" class="fixed-top">\
                 <ol class="breadcrumb">';
      
