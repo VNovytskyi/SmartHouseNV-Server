@@ -61,89 +61,89 @@
 				</li>
 			</ul>
 			<a class="btn btn-outline-primary" href="http://192.168.1.102/signIn">Sign In</a>
-			<!-- <form class="form-inline my-2 my-lg-0">
-				<input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search">
-				<button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-			</form> -->
 		</div>
 	  </nav>
 
 
-
-
-
-
     <div id="bedroom" class="min-vh-100">
 		<h1 class="text-center font-italic pt-5">Спальня</h1>
-        <div class="container">
-			<div class="row pt-5">
-            	<div class="col-md">
-              		<div class="card">
-						<div class="card-body mt-1">
-							<h5 class="card-title ">Главный свет</h5>
-							<button id="A0" type="button" class="btn btn-success">Включить</button>
-						</div>
-              		</div>
-            	</div>
-				<div class="col-md">
-					<div class="card">
-						<div class="card-body mt-1">
-							<h5 class="card-title ">Светильник</h5>
-							<button id="A1" type="button" class="btn btn-success">Включить</button>
-						</div>
+		<div class="album py-5">
+			<div class="container">
+				<div class="row">
+
+					<div class="col-md-3 mb-4">
+						  <div class="card">
+							<div class="card-body mt-1">
+								<h5 class="card-title ">Главный свет</h5>
+								<button id="A0" type="button" class="btn btn-success">Включить</button>
+							</div>
+						  </div>
 					</div>
-				</div>
-				<div class="col-md">
-					<div class="card">
-						<div class="card-body mt-1">
-							<h5 class="card-title">Вентиляция</h5>
-							<div id="debug"></div>
-							<div class="slidecontainer">
-								<!--TODO: Реализовать работу на телефоне. На событие click не реагирует-->
-								<input id="B0" type="range" min="1" max="100" value="50" class="slider">
+
+					<div class="col-md-3 mb-4">
+						<div class="card">
+							<div class="card-body mt-1">
+								<h5 class="card-title ">Светильник</h5>
+								<button id="A1" type="button" class="btn btn-success">Включить</button>
 							</div>
 						</div>
 					</div>
-				</div>
-				<div class="col-md">
-					<div class="card">
-						<div class="card-body mt-1">
-							<h5 class="card-title">Шторы</h5>
-							<!-- TODO: Шкала прогресса открытия штор. После открытия кнопка меняется на 'Закрыть'  -->
-							<button type="button" class="btn btn-success mt-1">Открыть</button>
+
+					<div class="col-md-6 mb-4">
+						<div class="card">
+							<div class="card-body mt-1">
+								<h5 class="card-title">Вентиляция</h5>
+								<div id="debug"></div>
+								<div class="slidecontainer">
+									<!--TODO: Реализовать работу на телефоне. На событие click не реагирует-->
+									<input id="B0" type="range" min="1" max="100" value="50" class="slider">
+								</div>
+							</div>
 						</div>
 					</div>
-				</div>
-        	</div>
-		</div>
-		<div class="container">
-			<div class="row pt-5">
-            	<div class="col-md">
-              		<div class="card">
-						<div class="card-body mt-1 ">
-							<h5 class="card-title ">RGB подсветка</h5>
-							<input type="color" name="" id="ColorRGB" value="#fd3cf8">
-							<!-- <input type="range" name="" id="ColorRGB"> -->
-							<p class="card-text"></p>
-							
-							<button type="button" class="btn btn-success">Включить</button>
+
+					<div class="col-md-3 mb-4">
+						<div class="card">
+							<div class="card-body mt-1">
+								<h5 class="card-title">Шторы</h5>
+								<!-- TODO: Шкала прогресса открытия штор. После открытия кнопка меняется на 'Закрыть'  -->
+								<div class="btn-group">
+									<button type="button" class="btn btn-outline-success">Open</button>
+									<button type="button" class="btn btn-outline-warning">Stop</button>
+									<button type="button" class="btn btn-outline-danger">Close</button>
+								</div>
+							</div>
 						</div>
-              		</div>
-            	</div>
-				
-        	</div>
-    	</div>
+					</div>
+
+					<div class="col-md-3 mb-4">
+						<div class="card">
+							<div class="card-body mt-1 ">
+								<h5 class="card-title ">RGB подсветка</h5>
+							  	<input type="color" name="" id="ColorRGB" value="#fd3cf8">
+							  	<div class="btn-group">
+									<button type="button" class="btn btn-outline-success">On</button>
+									<button type="button" class="btn btn-outline-danger">Off</button>
+								</div>
+						  </div>
+					</div>
+
+				  </div>
+				</div>
+			</div>
+		</div>
     </div>
 	  
-	<div id="hall" class="min-vh-100">
-        <h1 class="text-center font-italic pt-5">Прихожая</h1>
+	<div id="hall" class="min-vh-100 bg-light">
+		<h1 class="text-center font-italic pt-5">Прихожая</h1>
+		
     </div>
 	  
 	<div id="bathroom" class="min-vh-100"> 
 		<h1 class="text-center font-italic pt-5">Санузел</h1>	  
 	</div>
 	  
-	<div id="kitchen" class="min-vh-100">
+	<div id="kitchen" class="min-vh-100 bg-light">
         <h1 class="text-center font-italic pt-5">Кухня</h1>
     </div>
 
@@ -151,8 +151,7 @@
 <footer class="page-footer font-small bg-dark">
 
 	<!-- Copyright -->
-	<div class="footer-copyright text-center py-3 text-white">© 2020 Copyright:<a href="https://mdbootstrap.com/"> MDBootstrap.com</a>
-	</div>
+	<div class="footer-copyright text-center py-3 text-white">SmartHouseNV</div>
 	<!-- Copyright -->
   
   </footer>

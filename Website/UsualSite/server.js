@@ -109,6 +109,7 @@ wss.on('connection', function connection(ws) {
 function homePage(){
     let page = "";
 
+    //Header
     page += '<!DOCTYPE html>\
             <html lang="en">\
             <head>\
@@ -117,10 +118,10 @@ function homePage(){
                 <title>SmartHouseNV</title>\
                 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">\
                 <link rel="stylesheet" type="text/css" href="style.css">\
-            </head>\
-            <body class="pt-5">';
+            </head>';
 
-    page += '<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">\
+    page += '<body class="pt-5">\
+              <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">\
                 <a class="navbar-brand" href="#">SmartHouseNV</a>\
                 <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">\
                 <span class="navbar-toggler-icon"></span>\
@@ -132,7 +133,7 @@ function homePage(){
                             page += '<li class="nav-item active"><a class="nav-link" href="#' + hl.name + '">' + hl.name + '<span class="sr-only"></span></a></li>';
                         });
                        
-               page += '<li class="nav-item dropdown">\
+    page +=            '<li class="nav-item dropdown">\
                             <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Other</a>\
                             <div class="dropdown-menu" aria-labelledby="dropdown01">\
                                 <a class="dropdown-item" href="/weather">weather</a>\
@@ -144,73 +145,84 @@ function homePage(){
                 </div>\
             </nav>';
     
+    //Begin
     page += '<div id="bedroom" class="min-vh-100">\
                 <h1 class="text-center font-italic pt-5">Спальня</h1>\
-                <div class="container">\
-                    <div class="row pt-5">\
-                        <div class="col-md">\
-                            <div class="card">\
-                                <div class="card-body mt-1">\
-                                    <h5 class="card-title ">Главный свет</h5>\
-                                    <button id="A0" type="button" class="btn btn-success">Включить</button>\
-                                </div>\
-                            </div>\
-                        </div>\
-                        <div class="col-md">\
-                            <div class="card">\
-                                <div class="card-body mt-1">\
-                                    <h5 class="card-title ">Светильник</h5>\
-                                    <button id="A1" type="button" class="btn btn-success">Включить</button>\
-                                </div>\
-                            </div>\
-                        </div>\
-                        <div class="col-md">\
-                            <div class="card">\
-                                <div class="card-body mt-1">\
-                                    <h5 class="card-title">Вентиляция</h5>\
-                                    <div id="debug"></div>\
-                                    <div class="slidecontainer">\
-                                        <!--TODO: Реализовать работу на телефоне. На событие click не реагирует-->\
-                                        <input id="B0" type="range" min="1" max="100" value="50" class="slider">\
+                <div class="album py-5">\
+                    <div class="container">\
+                        <div class="row">';
+    
+    //Content
+    page += '\
+                            <div class="col-md-3 mb-4">\
+                                <div class="card">\
+                                    <div class="card-body mt-1">\
+                                        <h5 class="card-title ">Главный свет</h5>\
+                                        <button id="A0" type="button" class="btn btn-success">Включить</button>\
                                     </div>\
                                 </div>\
                             </div>\
-                        </div>\
-                        <div class="col-md">\
-                            <div class="card">\
-                                <div class="card-body mt-1">\
-                                    <h5 class="card-title">Шторы</h5>\
-                                    <!-- TODO: Шкала прогресса открытия штор. После открытия кнопка меняется на Закрыть -->\
-                                    <button type="button" class="btn btn-success mt-1">Открыть</button>\
+\
+                            <div class="col-md-3 mb-4">\
+                                <div class="card">\
+                                    <div class="card-body mt-1">\
+                                        <h5 class="card-title ">Светильник</h5>\
+                                        <button id="A1" type="button" class="btn btn-success">Включить</button>\
+                                    </div>\
                                 </div>\
                             </div>\
-                        </div>\
-                    </div>\
-                </div>\
-                <div class="container">\
-                    <div class="row pt-5">\
-                        <div class="col-md">\
-                            <div class="card">\
-                                <div class="card-body mt-1 ">\
-                                    <h5 class="card-title ">RGB подсветка</h5>\
-                                    <input type="color" name="" id="ColorRGB" value="#fd3cf8">\
-                                    <!-- <input type="range" name="" id="ColorRGB"> -->\
-                                    <p class="card-text"></p>\
-                                    <button type="button" class="btn btn-success">Включить</button>\
+\
+                            <div class="col-md-6 mb-4">\
+                                <div class="card">\
+                                    <div class="card-body mt-1">\
+                                        <h5 class="card-title">Вентиляция</h5>\
+                                        <div id="debug"></div>\
+                                        <div class="slidecontainer">\
+                                            <input id="B0" type="range" min="1" max="100" value="50" class="slider">\
+                                        </div>\
+                                    </div>\
                                 </div>\
                             </div>\
-                        </div>\
-                    </div>\
-                </div>\
-            </div>';
+\
+                            <div class="col-md-3 mb-4">\
+                                <div class="card">\
+                                    <div class="card-body mt-1">\
+                                        <h5 class="card-title">Шторы</h5>\
+                                        <div class="btn-group">\
+                                            <button type="button" class="btn btn-outline-success">Open</button>\
+                                            <button type="button" class="btn btn-outline-warning">Stop</button>\
+                                            <button type="button" class="btn btn-outline-danger">Close</button>\
+                                        </div>\
+                                    </div>\
+                                </div>\
+                            </div>\
+\
+                            <div class="col-md-3 mb-4">\
+                                <div class="card">\
+                                    <div class="card-body mt-1 ">\
+                                        <h5 class="card-title ">RGB подсветка</h5>\
+                                        <input type="color" name="" id="ColorRGB" value="#fd3cf8">\
+                                        <div class="btn-group">\
+                                            <button type="button" class="btn btn-outline-success">On</button>\
+                                            <button type="button" class="btn btn-outline-danger">Off</button>\
+                                        </div>\
+                                </div>\
+                            </div>';
 
-    page += '<div id="hall" class="min-vh-100">\
+    //End
+    page += '           </div>\
+                    </div>\
+                </div>\
+            </div>\
+        </div>';
+
+    page += '<div id="hall" class="min-vh-100 bg-light">\
                 <h1 class="text-center font-italic pt-5">Прихожая</h1>\
             </div>\
             <div id="bathroom" class="min-vh-100">\
                 <h1 class="text-center font-italic pt-5">Санузел</h1>\
             </div>\
-            <div id="kitchen" class="min-vh-100">\
+            <div id="kitchen" class="min-vh-100 bg-light">\
                 <h1 class="text-center font-italic pt-5">Кухня</h1>\
             </div>';
 
