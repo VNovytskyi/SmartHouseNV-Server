@@ -89,7 +89,6 @@ InitNRF();
 const wifi = require("Wifi");
 
 //Массив клиентов
-//TODO: выяснить не встроен ли этот массив
 var clients = [];
 
 //Счетчик клиентов. Для ограничения к-ва подлюченных клиентов
@@ -153,6 +152,24 @@ function wsHandler(ws)
             nrf.send([0x03, cmd, value >> 8, value & 0xFF]);
             currentCommand = [cmd, value >> 8, value & 0xFF];
           }
+          break;
+
+        case 'C':
+          let red = parseInt("0x" + arrMessage[i].value[1] + arrMessage[i].value[2])* 655;
+          let green = parseInt("0x" + arrMessage[i].value[3] + arrMessage[i].value[4])* 655;
+          let blue = parseInt("0x" + arrMessage[i].value[5] + arrMessage[i].value[6])* 655;
+          
+          console.log("Red: " + red);
+          console.log("Green: " + green);
+          console.log("Blue: " + blue);
+          
+          let cmdArr;
+          
+          if(red == 0)
+            cmdArr.push();
+
+          nrf.send([0x09, 0x23, red >> 8, red & 0xFF, 0x25, green >> 8, green & 0xFF, 0x27, blue >> 8, blue & 0xFF]);
+          currentCommand = [0x23, red >> 8, red & 0xFF, 0x25, green >> 8, green & 0xFF, 0x27, blue >> 8, blue & 0xFF];
           break;
 
         default:

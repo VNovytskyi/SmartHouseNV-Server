@@ -1,5 +1,5 @@
-//var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
-var ws = new WebSocket('ws://192.168.1.102:80', 'protocolOne');
+var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
+//var ws = new WebSocket('ws://192.168.1.102:80', 'protocolOne');
 
 ws.onopen = (event) => {
     console.log("WebSocket open");
@@ -57,7 +57,7 @@ document.getElementById("ColorRGB").addEventListener("change", eventsHandler, fa
 
 
 /*
-    Обрабатывает действие пользователя и отправляет его в формате JSON на сервер
+    Обработчик исходящего сообщения
 */
 function eventsHandler(event)
 {
