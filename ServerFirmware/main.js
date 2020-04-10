@@ -155,21 +155,35 @@ function wsHandler(ws)
           break;
 
         case 'C':
-          let red = parseInt("0x" + arrMessage[i].value[1] + arrMessage[i].value[2])* 655;
-          let green = parseInt("0x" + arrMessage[i].value[3] + arrMessage[i].value[4])* 655;
-          let blue = parseInt("0x" + arrMessage[i].value[5] + arrMessage[i].value[6])* 655;
-          
-          console.log("Red: " + red);
-          console.log("Green: " + green);
-          console.log("Blue: " + blue);
-          
-          let cmdArr;
-          
-          if(red == 0)
-            cmdArr.push();
+          let red = parseInt("0x" + arrMessage[i].value[1] + arrMessage[i].value[2]) * 257;
+          let green = parseInt("0x" + arrMessage[i].value[3] + arrMessage[i].value[4]) * 257;
+          let blue = parseInt("0x" + arrMessage[i].value[5] + arrMessage[i].value[6]) * 257;
 
-          nrf.send([0x09, 0x23, red >> 8, red & 0xFF, 0x25, green >> 8, green & 0xFF, 0x27, blue >> 8, blue & 0xFF]);
-          currentCommand = [0x23, red >> 8, red & 0xFF, 0x25, green >> 8, green & 0xFF, 0x27, blue >> 8, blue & 0xFF];
+          let cmdArr = [];
+
+          if(red < 1000){
+            cmdArr.push(0x24);
+          }else{
+            cmdArr.push(0x23, red >> 8, red & 0xFF);
+          }
+
+          if(green < 1000){
+            cmdArr.push(0x26);
+          }else{
+            cmdArr.push(0x25, green >> 8, green & 0xFF);
+          }
+
+          if(blue < 1000){
+            cmdArr.push(0x28);
+          }else{
+            cmdArr.push(0x27, blue >> 8, blue & 0xFF);
+          }
+
+          cmdArr.unshift(cmdArr.length);
+
+          nrf.send(cmdArr);
+          cmdArr.shift();
+          currentCommand = cmdArr;
           break;
 
         default:
