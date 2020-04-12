@@ -1,18 +1,38 @@
+/*
+  Tasks:
+    1) При отправке запроса на состояния хаба запускать таймер на время отзыва;
+    2) Перед отправкой команды на хаб выставлять его адрес из класса localHub;
+
+
+*/
+
+
+
+
+
+
 console.log("Launching...");
 
 
 //------------------------- Storage часть -------------------------
 
-const storage = require("Storage");
-
 //TODO: Создать класс для каждой локации дома (localHub)
+var localHub = function(HubNum){
+  this.HubNum = HubNum; // Addr = [HubNum, 1, 1, 1, 1]
+  this.elements = []; //Buttons for light, RGB, ...
+};
+
+const storage = require("Storage");
+//TODO: выполнять инциализацию структур данных загружая данные из файлов
+
+
 // 16и разрядное число
 var portA = 0;
 
 // Массив значений порта B
 var portB = [0, 0, 0, 0, 0, 0];
 
-var currentCommand;
+var currentCommand = null;
 var currentMessage;
 
 //------------------------- NRF часть -------------------------
@@ -34,6 +54,7 @@ function nrfGetMessage(data){
 function InitNRF() {
   //rx, tx
   nrf.init([1, 1, 1, 1, 1], [2, 1, 1, 1, 1]);
+  //nrf.setTXAddr(addr)
   nrf.setReg(0x01, 0x3F);
   nrf.setReg(0x02, 0x03);
   nrf.setReg(0x03, 0x03);
@@ -51,11 +72,38 @@ function InitNRF() {
       let msg = nrfGetMessage(data);
       //console.log(dataPipe + ": " + msg);
 
-      if(currentCommand.toString() == msg.toString()){
-        broadcast(currentMessage);
+      if(msg[0] != 0xFF || currentCommand != null){
+        if(currentCommand.toString() == msg.toString()){
+          broadcast(currentMessage);
+          currentCommand = null;
+        }else{
+          console.log("[ ERROR ] Received command did not match with transmitted!");
+          console.log(currentCommand + " | " + msg);
+        }
       }else{
-        console.log("[ ERROR ] Received command did not match with transmitted!");
-        console.log(currentCommand + " | " + msg);
+        switch(msg[2]){
+          case 0x01:
+            console.log("LocalHub[" + msg[1] + "]: Ready!");
+            break;
+
+          case 0x02:
+            console.log("LocalHub[" + msg[1] + "]: Online");
+            break;
+
+          case 0x03:
+            let temperature = msg[3];
+            let humidity = msg[4];
+            let pressure = (msg[5] << 8) | msg[6];
+
+            console.log("******************* Weather Data *******************");
+            console.log("Temperature: " + temperature);
+            console.log("Humidity: " + humidity);
+            console.log("Pressure: " + pressure);
+            break;
+
+          default:
+            console.log("Not handled case for incomming message from localHub");
+        }
       }
     }
   }, 50);
@@ -66,20 +114,7 @@ function InitNRF() {
 InitNRF();
 
 
-// BuildInLed off: nrf.send([0x01, 0x02]);
-// BuildInLed on: nrf.send([0x01, 0x01]);
 
-//P0
-//nrf.send([0x03, 0x23, 0xff, 0xff]);
-//nrf.send([0x01, 0x24]);
-
-//P1
-//nrf.send([0x03, 0x25, 0xff, 0xff]);
-//nrf.send([0x01, 0x26]);
-
-//P2
-//nrf.send([0x03, 0x27, 0xff, 0xff]);
-//nrf.send([0x01, 0x28]);
 
 
 
@@ -103,7 +138,7 @@ function wsHandler(ws)
   clients.push(ws);
 
   ws.on('message', message => {
-    //TODO:установить доступный интервал ответа
+    //TODO: установить доступный интервал ответа
     currentMessage = message;
 
     let arrMessage = JSON.parse(message);
@@ -222,8 +257,6 @@ function httpServerHandler(req, res)
   {
     case "/":
     case "/home":
-      //TODO: Загрузить новую страницу
-      //res.end(storage.read("MainPage"));
       res.end("Home Page");
       break;
 
@@ -249,14 +282,15 @@ function broadcast(msg) {
 */
 function startServer()
 {
-  const s = require('ws').createServer(httpServerHandler);
-  s.on('websocket', wsHandler);
-  s.listen(80);
+  const server = require('ws').createServer(httpServerHandler);
+  server.on('websocket', wsHandler);
+  server.listen(80);
 }
 
 /*
   Отправляет новому клиенту текущее состояние системы
 */
+//TODO: обновить при переходе на файловую систему
 function bringUpToDate(ws)
 {
   let commandsArr = [];
@@ -281,6 +315,7 @@ function bringUpToDate(ws)
 /*
   Подключение к точке доступа
 */
+//TODO: Добавить несколько точек доступа
 console.log("Connecting to access point...");
 wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
   if (err !== null) {
@@ -295,6 +330,8 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
       startServer();
       console.log("Server Ready");
       console.log("Launch completed");
+
+      //TODO: Check who is online (localhubs)
 
       setInterval(()=>{
        D2.toggle();
