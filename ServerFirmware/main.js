@@ -25,6 +25,8 @@ var localHub = function(HubNum){
 const storage = require("Storage");
 //TODO: выполнять инциализацию структур данных загружая данные из файлов
 
+var weatherDataBuff = [];
+
 
 // 16и разрядное число
 var portA = 0;
@@ -34,12 +36,15 @@ var portB = [0, 0, 0, 0, 0, 0];
 
 var currentCommand = null;
 var currentMessage;
+var ipServerPC = "192.168.1.102";
 
 //------------------------- NRF часть -------------------------
 
 SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
 const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1);
+const http = require("http");
+var httpResult;
 
 function nrfGetMessage(data){
   let dataLength = data[0];
@@ -94,6 +99,7 @@ function NRF_Handler(){
             console.log("LocalHub[" + msg[1] + "]: Online");
             break;
 
+          //The weather has come
           case 0x03:
             let temperature = msg[3];
             let humidity = msg[4];
@@ -105,10 +111,49 @@ function NRF_Handler(){
             console.log("Humidity: " + humidity + "%");
             console.log("Pressure: " + pressure);
             console.log("Battery: " + batteryVoltage + "V");
+
+            let weatherData = {temperature: temperature,
+                               humidity: humidity,
+                               pressure: pressure,
+                               batteryVoltage: batteryVoltage};
+
+            weatherDataBuff.push(weatherData);
+
+            http.get(ipServerPC, (res) => {
+                httpResult = res;
+
+                res.on('data', function(data) {
+                  //console.log(data);
+                });
+
+            });
+
+            setTimeout(()=>{
+                if(httpResult != undefined && httpResult.statusCode == "200"){
+                  console.log("Start sendind weather data to server.");
+
+                  //TODO: Организовать цикл по буфферу погодных данных
+                  http.get(ipServerPC + "/weatherStation/main.php?type=addNewRecord&t=" + temperature
+                           + "&h=" + humidity + "&p=" + pressure + "&v=" + batteryVoltage, (res) => {
+
+                    res.on('data', function(data) {
+                      console.log(data);
+                    });
+
+                    res.on('error', function(e) {
+                      console.log(e);
+                    });
+
+                  });
+                }else{
+                  console.log("MySQL server on " + ipServerPC + " is not available.");
+                  console.log("Current weather data push into a buffer.");
+                }
+            }, 1000);
             break;
 
           default:
-            console.log("Not handled case for incomming message from localHub");
+            console.log("Not handled case for incomming message from localHub: [" + msg[2] + "]");
         }
       }
     }
