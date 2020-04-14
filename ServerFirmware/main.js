@@ -63,14 +63,18 @@ function InitNRF() {
   nrf.setReg(0x06, 0x27);
   nrf.setReg(0x1C, 0x3F);
   nrf.setReg(0x1D, 0x06);
+}
 
+InitNRF();
+
+function NRF_Handler(){
   setInterval(function() {
     while (nrf.getDataPipe() !== undefined) {
       let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
 
       let msg = nrfGetMessage(data);
-      //console.log(dataPipe + ": " + msg);
+      console.log(dataPipe + ": " + msg);
 
       if(msg[0] != 0xFF || currentCommand != null){
         if(currentCommand.toString() == msg.toString()){
@@ -94,11 +98,13 @@ function InitNRF() {
             let temperature = msg[3];
             let humidity = msg[4];
             let pressure = (msg[5] << 8) | msg[6];
+            let batteryVoltage = msg[7] / 10;
 
             console.log("******************* Weather Data *******************");
-            console.log("Temperature: " + temperature);
-            console.log("Humidity: " + humidity);
+            console.log("Temperature: " + temperature + "°C");
+            console.log("Humidity: " + humidity + "%");
             console.log("Pressure: " + pressure);
+            console.log("Battery: " + batteryVoltage + "V");
             break;
 
           default:
@@ -107,11 +113,9 @@ function InitNRF() {
       }
     }
   }, 50);
-
-  console.log("NRF Ready");
 }
 
-InitNRF();
+
 
 
 
@@ -316,6 +320,7 @@ function bringUpToDate(ws)
   Подключение к точке доступа
 */
 //TODO: Добавить несколько точек доступа
+
 console.log("Connecting to access point...");
 wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
   if (err !== null) {
@@ -329,13 +334,19 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
       console.log("Connecting to access point successfully");
       startServer();
       console.log("Server Ready");
-      console.log("Launch completed");
 
       //TODO: Check who is online (localhubs)
 
-      setInterval(()=>{
+      /*setInterval(()=>{
        D2.toggle();
-      }, 1000);
+      }, 1000);*/
+
+      InitNRF(); //Second call InitNRF(), it`s not a mistake, do not delete!
+      NRF_Handler();
+
+      console.log("NRF Ready");
+
+      console.log("Launch completed");
     }
   });
 });
