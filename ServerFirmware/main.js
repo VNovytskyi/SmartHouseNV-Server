@@ -72,6 +72,63 @@ function InitNRF() {
 
 InitNRF();
 
+
+function clearUnsentWeatherData(){
+  return storage.erase("UWD");
+}
+
+function addUnsentWeatherData(temperature, humidity, pressure, batteryVoltage){
+  let data = isUnsentWeatherData();
+
+  if(data != false){
+    let arrObj = JSON.parse(getUnsentWeatherData());
+    arrObj.push({temperature: temperature, humidity: humidity, pressure: pressure, batteryVoltage: batteryVoltage});
+    storage.write("UWD", JSON.stringify(arrObj));
+  }else{
+    let arrObj = [];
+    arrObj.push({temperature: temperature, humidity: humidity, pressure: pressure, batteryVoltage: batteryVoltage});
+    storage.write("UWD", JSON.stringify(arrObj));
+  }
+}
+
+function isUnsentWeatherData(){
+  let data = getUnsentWeatherData();
+
+  if(data != undefined)
+    return data.length > 0;
+  else
+    return false;
+}
+
+function getUnsentWeatherData(){
+  return storage.read("UWD");
+}
+
+function sendWeatherData(temperature, humidity, pressure, batteryVoltage){
+  let req = ipServerPC + "/weatherStation/main.php?type=addNewRecord&t=" + temperature +
+                                          "&h=" + humidity + "&p=" + pressure + "&v=" + batteryVoltage;
+
+  http.get(req, (res) => {
+    res.on('data', (data) => {
+
+      /*
+      if(data.indexOf("Successfull")){
+        console.log("[ OK ] Message has been transmitted to server.");
+      }else{
+        console.log("[ ERROR ] Get error message from server:");
+        console.log(data);
+        result = false;
+      }
+      */
+    });
+
+    res.on('error', function(e) {
+      console.log("[ ERROR ] While transmitted weatherData get internal error:");
+      console.log(e);
+    });
+  });
+}
+
 function NRF_Handler(){
   setInterval(function() {
     while (nrf.getDataPipe() !== undefined) {
@@ -79,7 +136,7 @@ function NRF_Handler(){
       let data = nrf.getData();
 
       let msg = nrfGetMessage(data);
-      console.log(dataPipe + ": " + msg);
+      //console.log(dataPipe + ": " + msg);
 
       if(msg[0] != 0xFF || currentCommand != null){
         if(currentCommand.toString() == msg.toString()){
@@ -99,56 +156,74 @@ function NRF_Handler(){
             console.log("LocalHub[" + msg[1] + "]: Online");
             break;
 
-          //The weather has come
           case 0x03:
             let temperature = msg[3];
             let humidity = msg[4];
             let pressure = (msg[5] << 8) | msg[6];
             let batteryVoltage = msg[7] / 10;
 
+            console.log("\n");
             console.log("******************* Weather Data *******************");
             console.log("Temperature: " + temperature + "°C");
             console.log("Humidity: " + humidity + "%");
             console.log("Pressure: " + pressure);
             console.log("Battery: " + batteryVoltage + "V");
 
-            let weatherData = {temperature: temperature,
-                               humidity: humidity,
-                               pressure: pressure,
-                               batteryVoltage: batteryVoltage};
-
-            weatherDataBuff.push(weatherData);
-
-            http.get(ipServerPC, (res) => {
-                httpResult = res;
-
-                res.on('data', function(data) {
-                  //console.log(data);
-                });
-
-            });
+            http.get(ipServerPC, (res) => httpResult = res);
 
             setTimeout(()=>{
-                if(httpResult != undefined && httpResult.statusCode == "200"){
-                  console.log("Start sendind weather data to server.");
+              let enableServer = ((httpResult != undefined || httpResult != null) && httpResult.statusCode == "200");
+              httpResult = null;
 
-                  //TODO: Организовать цикл по буфферу погодных данных
-                  http.get(ipServerPC + "/weatherStation/main.php?type=addNewRecord&t=" + temperature
-                           + "&h=" + humidity + "&p=" + pressure + "&v=" + batteryVoltage, (res) => {
+              if(enableServer == true){
+                console.log("[ OK ] MySQL server on " + ipServerPC + " is available.");
 
-                    res.on('data', function(data) {
-                      console.log(data);
-                    });
+                let unsentData = isUnsentWeatherData();
 
-                    res.on('error', function(e) {
-                      console.log(e);
-                    });
+                if(unsentData == true){
+                  console.log("WeatherData buff is not empty.");
 
-                  });
+                  let unsentData = JSON.parse(getUnsentWeatherData());
+                  console.log("Unsent data:");
+                  console.log(unsentData);
+
+                  console.log("Start sendind unsent weatherData to server.");
+
+                  let i = 0;
+                  let len = unsentData.length;
+                  let sendInterval = setInterval(()=>{
+                    console.log(i + "/" + len);
+                    i++;
+                    console.log("Free: " + process.memory().free);
+
+                    let cur = unsentData.shift();
+                    if(cur == undefined){
+                      clearInterval(sendInterval);
+                      console.log("Clear weatherData buff.");
+                      clearUnsentWeatherData();
+
+                      console.log("Start sendind current weather data to server.");
+                      sendWeatherData(temperature, humidity, pressure, batteryVoltage);
+
+                      //TODO: Проверять, прошла ли отправка
+                      console.log("[ OK ] Message has been transmitted to server.");
+                    }else{
+                      sendWeatherData(cur.temperature, cur.humidity, cur.pressure, cur.batteryVoltage);
+                    }
+                  }, 1000);
                 }else{
-                  console.log("MySQL server on " + ipServerPC + " is not available.");
-                  console.log("Current weather data push into a buffer.");
+                  console.log("Start sendind current weather data to server.");
+                  sendWeatherData(temperature, humidity, pressure, batteryVoltage);
+
+                  //TODO: Проверять, прошла ли отправка
+                  console.log("[ OK ] Message has been transmitted to server.");
                 }
+              }else{
+                console.log("[ WARNING ] MySQL server on " + ipServerPC + " is not available.");
+                console.log("Save unsent weatherData into a buff.");
+                addUnsentWeatherData(temperature, humidity, pressure, batteryVoltage);
+                console.log(JSON.parse(getUnsentWeatherData()));
+              }
             }, 1000);
             break;
 
@@ -382,9 +457,7 @@ wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
 
       //TODO: Check who is online (localhubs)
 
-      /*setInterval(()=>{
-       D2.toggle();
-      }, 1000);*/
+      setInterval(() => D2.toggle(), 1000);
 
       InitNRF(); //Second call InitNRF(), it`s not a mistake, do not delete!
       NRF_Handler();
