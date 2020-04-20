@@ -1,23 +1,8 @@
-console.log("Launching...");
-
 const http = require('http');
 const fs = require('fs');
 const url = require('url');
+const WebSocket = require('ws');
 
-// В файл
-var homeLocations = [
-    {id: 0, name: 'bedroom', portA: 0, portB: [0, 0, 0, 0, 0, 0]},
-    {id: 1, name: 'hall', portA: 0, portB: [0, 0, 0, 0, 0, 0]},
-    {id: 2, name: 'bathroom', portA: 0, portB: [0, 0, 0, 0, 0, 0]},
-    {id: 3, name: 'kitchen', portA: 0, portB: [0, 0, 0, 0, 0, 0]}
-];
-
-var locationContant = [
-    {id: 0},
-    {id: 0},
-
-    {id: 1}
-];
 
 const server = http.createServer(function (req, res) {
     let urlObj = url.parse(req.url, true);
@@ -82,8 +67,6 @@ const server = http.createServer(function (req, res) {
 
 }).listen(80);
 
-
-const WebSocket = require('ws');
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', function connection(ws) {
@@ -106,10 +89,71 @@ wss.on('connection', function connection(ws) {
     //bringUpToDate(ws);
 });
 
+const mysql = require("mysql2");
+
+var homeLocations = [];
+var elementTypes = [];
+var locationElements = [];
+  
+const connection = mysql.createConnection({
+  host: "localhost",
+  user: "vladyslavN",
+  database: "smartHouseNV",
+  password: "3105Vlad3010Vlada"
+});
+
+connection.connect(function(err){
+    if (err) {
+      return console.error("Ошибка: " + err.message);
+    }
+    else{
+      console.log("Подключение к серверу MySQL успешно установлено");
+    }
+ });
+
+connection.query("SELECT * FROM homeLocation Order by idhomelocation Asc",
+    function(err, results, fields) {
+        if(err == null){
+            results.forEach(el => {
+                homeLocations.push(el);
+            });
+        }
+        else{
+            console.log(err);
+        }
+});
+
+connection.query("SELECT * FROM elementType ORDER BY idElementType ASC",
+    function(err, results, fields) {
+        if(err == null){
+            results.forEach(el => {
+                elementTypes.push(el);
+            });
+        }
+        else{
+            console.log(err);
+        }
+});
+
+connection.query("SELECT * FROM locationElement ORDER BY idlocationElement ASC",
+    function(err, results, fields) {
+        if(err == null){
+            results.forEach(el => {
+                locationElements.push(el);
+            });
+        }
+        else{
+            console.log(err);
+        }
+});
+
+
+
+
+
 function homePage(){
     let page = "";
 
-    //Header
     page += '<!DOCTYPE html>\
             <html lang="en">\
             <head>\
@@ -130,14 +174,14 @@ function homePage(){
                     <ul class="navbar-nav mr-auto">';
 
                         homeLocations.forEach((hl)=>{
-                            page += '<li class="nav-item active"><a class="nav-link" href="#' + hl.name + '">' + hl.name + '<span class="sr-only"></span></a></li>';
+                            page += '<li class="nav-item active"><a class="nav-link" href="#' + hl.title + '">' + hl.title + '<span class="sr-only"></span></a></li>';
                         });
                        
     page +=            '<li class="nav-item dropdown">\
                             <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Other</a>\
                             <div class="dropdown-menu" aria-labelledby="dropdown01">\
                                 <a class="dropdown-item" href="/weather">weather</a>\
-                                <a class="dropdown-item" href="/settings">settings</a>\
+                                <a class="dropdown-item mb-2" href="/settings">settings</a>\
                             </div>\
                         </li>\
                     </ul>\
@@ -145,87 +189,74 @@ function homePage(){
                 </div>\
             </nav>';
     
-    //Begin
-    page += '<div id="bedroom" class="min-vh-100">\
-                <h1 class="text-center font-italic pt-5">Спальня</h1>\
-                <div class="album py-5">\
-                    <div class="container">\
-                        <div class="row">';
+    for(let i = 0; i < homeLocations.length; ++i){
+        if(i % 2 == 0){
+            page += '<div id="' + homeLocations[i].title + '" class="min-vh-100">';
+        }
+        else{
+            page += '<div id="' + homeLocations[i].title + '" class="min-vh-100 bg-light">';
+        }
+
+        page += '<h1 class="text-center font-italic pt-5">' + homeLocations[i].title + '</h1>\
+                 <div class="container mt-4">\
+                    <div class="row">';
+
+        for(let j = 0; j < locationElements.length; ++j){
+            if(locationElements[j].idHomeLocation == homeLocations[i].idHomeLocation){
+                let idElement = locationElements[j].idElementType;
+                let elementTitle = elementTypes[idElement - 1].title;
+                let locationTitle = locationElements[j].title;
+
+                console.log(homeLocations[i].title + " - " + locationTitle + " - " + elementTitle + " - " + locationElements[j].port);
+                
+                let colmd = "col-md-3";
+                let buff = "";
+
+                switch(elementTitle){
+                    case "SimpleButton":
+                        break;
+                    
+                    case "DoubleButton":
+                        break;
+
+                    case "TripleButton":
+                        buff += '<div class="btn-group">\
+                                    <button type="button" class="btn btn-outline-success">Open</button>\
+                                    <button type="button" class="btn btn-outline-warning">Stop</button>\
+                                    <button type="button" class="btn btn-outline-danger">Close</button>\
+                                </div>'
+                        break;
+
+                    case "ChangingButton":
+                        buff += '<button name="' + locationElements[j].port + '" type="button" class="btn btn-success">Включить</button>';
+                        break;
+                            
+                    case "Range":
+                        colmd = "col-md-6";
+                        buff += '<input name="' + locationElements[j].port + '" type="range" min="1" max="100" value="0" class="slider">';
+                        break;
+                    
+                    case "ColorPicker":
+                        buff += '<input name="' + locationTitle + '" type="color" value="#fd3cf8">\
+                                 <div class="btn-group">\
+                                    <button type="button" class="btn btn-outline-success">On</button>\
+                                    <button type="button" class="btn btn-outline-danger">Off</button>\
+                                 </div>';
+                        break;
+                }
+
+                page += '<div class="'+ colmd + ' mb-4">\
+                            <div class="card">\
+                                <div class="card-body mt-1">\
+                                    <h5 class="card-title ">' + locationTitle + '</h5>';
+                page += buff;
+
+                page += '</div></div></div>';
+            }
+        }
+        page += '</div></div></div>';
+    }
     
-    //Content
-    page += '\
-                            <div class="col-md-3 mb-4">\
-                                <div class="card">\
-                                    <div class="card-body mt-1">\
-                                        <h5 class="card-title ">Главный свет</h5>\
-                                        <button id="A0" type="button" class="btn btn-success">Включить</button>\
-                                    </div>\
-                                </div>\
-                            </div>\
-\
-                            <div class="col-md-3 mb-4">\
-                                <div class="card">\
-                                    <div class="card-body mt-1">\
-                                        <h5 class="card-title ">Светильник</h5>\
-                                        <button id="A1" type="button" class="btn btn-success">Включить</button>\
-                                    </div>\
-                                </div>\
-                            </div>\
-\
-                            <div class="col-md-6 mb-4">\
-                                <div class="card">\
-                                    <div class="card-body mt-1">\
-                                        <h5 class="card-title">Вентиляция</h5>\
-                                        <div id="debug"></div>\
-                                        <div class="slidecontainer">\
-                                            <input id="B0" type="range" min="1" max="100" value="50" class="slider">\
-                                        </div>\
-                                    </div>\
-                                </div>\
-                            </div>\
-\
-                            <div class="col-md-3 mb-4">\
-                                <div class="card">\
-                                    <div class="card-body mt-1">\
-                                        <h5 class="card-title">Шторы</h5>\
-                                        <div class="btn-group">\
-                                            <button type="button" class="btn btn-outline-success">Open</button>\
-                                            <button type="button" class="btn btn-outline-warning">Stop</button>\
-                                            <button type="button" class="btn btn-outline-danger">Close</button>\
-                                        </div>\
-                                    </div>\
-                                </div>\
-                            </div>\
-\
-                            <div class="col-md-3 mb-4">\
-                                <div class="card">\
-                                    <div class="card-body mt-1 ">\
-                                        <h5 class="card-title ">RGB подсветка</h5>\
-                                        <input type="color" name="" id="ColorRGB" value="#fd3cf8">\
-                                        <div class="btn-group">\
-                                            <button type="button" class="btn btn-outline-success">On</button>\
-                                            <button type="button" class="btn btn-outline-danger">Off</button>\
-                                        </div>\
-                                </div>\
-                            </div>';
-
-    //End
-    page += '           </div>\
-                    </div>\
-                </div>\
-            </div>\
-        </div>';
-
-    page += '<div id="hall" class="min-vh-100 bg-light">\
-                <h1 class="text-center font-italic pt-5">Прихожая</h1>\
-            </div>\
-            <div id="bathroom" class="min-vh-100">\
-                <h1 class="text-center font-italic pt-5">Санузел</h1>\
-            </div>\
-            <div id="kitchen" class="min-vh-100 bg-light">\
-                <h1 class="text-center font-italic pt-5">Кухня</h1>\
-            </div>';
-
     page += '<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>\
              <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>\
              <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>\
@@ -278,3 +309,4 @@ function signInPage(){
 
     return str;
 }
+
