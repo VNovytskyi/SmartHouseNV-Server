@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>SmartHouseNV</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+	<script src="https://kit.fontawesome.com/052fa37aec.js" crossorigin="anonymous"></script>
 	<link rel="stylesheet" href="style.css">
 </head>
 <body class="pt-5">
@@ -25,38 +26,28 @@
 		</button>
   
 		<div class="collapse navbar-collapse" id="navbarsExampleDefault">
-		  	<!-- <ol class="breadcrumb mr-auto mb-0">
-				<li class="breadcrumb-item"><a href="#bedroom">Спальня</a></li>
-				<li class="breadcrumb-item"><a href="#hall">Прихожая</a></li>
-				<li class="breadcrumb-item"><a href="#bathroom">Санузел</a></li>
-				<li class="breadcrumb-item"><a href="#kitchen">Кухня</a></li>
-			</ol> -->
 			<ul class="navbar-nav mr-auto">
 				<li class="nav-item active">
-				  <a class="nav-link" href="#">Спальня<span class="sr-only">(current)</span></a>
+					<a class="nav-link " href="#">Спальня<span class="sr-only">(current)</span></a>
 				</li>
 				<li class="nav-item active">
-				  <a class="nav-link" href="#">Коридор<span class="sr-only">(current)</span></a>
+				  	<a class="nav-link" href="#">Коридор<span class="sr-only">(current)</span></a>
 				</li>
 				<li class="nav-item active">
-				  <a class="nav-link" href="#">Ванная<span class="sr-only">(current)</span></a>
+				  	<a class="nav-link" href="#">Ванная<span class="sr-only">(current)</span></a>
 				</li>
 				<li class="nav-item active">
-				  <a class="nav-link" href="#">Кухня<span class="sr-only">(current)</span></a>
+				  	<a class="nav-link" href="#">Кухня<span class="sr-only">(current)</span></a>
 				</li>
-				
-				
-				<!-- <li class="nav-item">
-				  <a class="nav-link" href="#">Спальня</a>
-				</li>
-				<li class="nav-item">
-				  <a class="nav-link disabled" href="#">Disabled</a>
-				</li> -->
 				
 				<li class="nav-item dropdown">
 				  <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Другое</a>
 				  <div class="dropdown-menu" aria-labelledby="dropdown01">
 					<a class="dropdown-item" href="#">Погода</a>
+					<div class="dropdown-item">
+						<input type="checkbox" id="editMode" name="scales" checked>
+						<label for="scales">Edit mode</label>
+					</div>
 				  </div>
 				</li>
 			</ul>
@@ -72,17 +63,29 @@
 				<div class="row">
 
 					<div class="col-md-3 mb-4">
-						  <div class="card">
-							<div class="card-body mt-1">
-								<h5 class="card-title ">Главный свет</h5>
+						<div class="card">
+							<div class="card-body mt-n3">
+								<div name="editButtons" class="text-right">
+									<a href="">
+										<i class="far fa-edit text-muted"></i>
+									</a>
+									<a href="">
+										<i class="fas fa-times-circle text-danger"></i>
+									</a>
+								</div>
+								<h5 class="card-title">Главный свет</h5>
 								<button id="A0" type="button" class="btn btn-success">Включить</button>
 							</div>
-						  </div>
+						</div>
 					</div>
 
 					<div class="col-md-3 mb-4">
 						<div class="card">
-							<div class="card-body mt-1">
+							<div class="card-body mt-n3">
+								<div class=" text-right">
+									<i class="far fa-edit text-muted"></i>
+									<i class="fas fa-times-circle text-danger"></i>
+								</div>
 								<h5 class="card-title ">Светильник</h5>
 								<button id="A1" type="button" class="btn btn-success">Включить</button>
 							</div>
@@ -91,7 +94,11 @@
 
 					<div class="col-md-6 mb-4">
 						<div class="card">
-							<div class="card-body mt-1">
+							<div class="card-body mt-n3">
+								<div class=" text-right">
+									<i class="far fa-edit text-muted"></i>
+									<i class="fas fa-times-circle text-danger"></i>
+								</div>
 								<h5 class="card-title">Вентиляция</h5>
 								<div id="debug"></div>
 								<div class="slidecontainer">
@@ -104,7 +111,11 @@
 
 					<div class="col-md-3 mb-4">
 						<div class="card">
-							<div class="card-body mt-1">
+							<div class="card-body mt-n3">
+								<div class=" text-right">
+									<i class="far fa-edit text-muted"></i>
+									<i class="fas fa-times-circle text-danger"></i>
+								</div>
 								<h5 class="card-title">Шторы</h5>
 								<!-- TODO: Шкала прогресса открытия штор. После открытия кнопка меняется на 'Закрыть'  -->
 								<div class="btn-group">
@@ -118,18 +129,66 @@
 
 					<div class="col-md-3 mb-4">
 						<div class="card">
-							<div class="card-body mt-1 ">
+							<div class="card-body mt-n3">
+								<div class=" text-right" >
+									<i class="far fa-edit text-muted"></i>
+									<i class="fas fa-times-circle text-danger"></i>
+								</div>
 								<h5 class="card-title ">RGB подсветка</h5>
 							  	<input type="color" name="" id="ColorRGB" value="#fd3cf8">
 							  	<div class="btn-group">
 									<button type="button" class="btn btn-outline-success">On</button>
 									<button type="button" class="btn btn-outline-danger">Off</button>
 								</div>
-						  </div>
+						  	</div>
+						</div>
 					</div>
-
-				  </div>
 				</div>
+
+				<div class="row">
+					<div class="col-md-3 mb-4">
+						<div class="card">
+							<div class="card-body">
+								<div class="mb-2">
+									<i class="fas fa-plus-square d-inline"></i>
+									<h5 class="card-title d-inline">Add new item</h5>
+								</div>
+								<label class="sr-only" for="inlineFormInputGroup">Username</label>
+								<div class="input-group mb-2">
+									<div class="input-group-prepend">
+										<div class="input-group-text">Label</div>
+									</div>
+									<input type="text" class="form-control" id="inlineFormInputGroup" placeholder="Username">
+								</div>
+								
+								<div class="input-group mb-3">
+									<div class="input-group-prepend">
+									  <label class="input-group-text" for="inputGroupSelect01">Type</label>
+									</div>
+									<select class="custom-select" id="inputGroupSelect01">
+									  <option selected>Choose...</option>
+									  <option value="1">One</option>
+									  <option value="2">Two</option>
+									  <option value="3">Three</option>
+									</select>
+								</div>
+								<div class="input-group mb-3">
+									<div class="input-group-prepend">
+									  <label class="input-group-text" for="inputGroupSelect01">Type</label>
+									</div>
+									<select class="custom-select" id="inputGroupSelect01">
+									  <option selected>Choose...</option>
+									  <option value="1">One</option>
+									  <option value="2">Two</option>
+									  <option value="3">Three</option>
+									</select>
+								</div>
+								<button name="addButton" type="button" class="btn btn-success w-100">Add</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
 			</div>
 		</div>
     </div>

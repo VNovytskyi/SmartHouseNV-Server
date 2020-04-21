@@ -3,6 +3,9 @@ const fs = require('fs');
 const url = require('url');
 const WebSocket = require('ws');
 
+var homeLocations = [];
+var elementTypes = [];
+var locationElements = [];
 
 const server = http.createServer(function (req, res) {
     let urlObj = url.parse(req.url, true);
@@ -59,13 +62,60 @@ const server = http.createServer(function (req, res) {
             res.end("settings page");
         break;
 
+        case "/addNewLocationElement":
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end();
+
+            let hl = homeLocations.find((el) => {
+                if(urlObj.query['homeLocation'] == el.title){
+                    return el;
+                } 
+            });
+            hl = hl.idHomeLocation;
+
+
+            let et = elementTypes.find((el) => {
+                if(urlObj.query['type'] == el.title){
+                    return el;
+                } 
+            });
+            et = et.idElementType;
+
+            let title = urlObj.query['title'];
+            
+            
+            let p = urlObj.query['port'];
+
+
+            connection.query("INSERT INTO `locationelement` (`idLocationElement`, `idHomeLocation`, `idElementType`, `title`, `port`) VALUES (NULL, " + hl +  ", " + et + ", '" + title + "', '" + p +"')",
+                function(err, results, fields) {
+                    if(err == null){
+                       console.log("Query ok");
+                    }
+                    else{
+                        console.log(err);
+                    }
+            });
+            
+            updateDataFromDB();
+            
+            setTimeout(() => {
+                let page = homePage();
+                let message = [{name: 'body', value: page}];
+                wss.clients.forEach(cl => cl.send(JSON.stringify(message)));
+            }, 1000);
+            
+
+        break;
+
         default:
             res.writeHead(404, {'Content-Type': 'text/html'});
             res.end("Node.js -> 404");
+            console.log(urlObj);
         break;
     }
 
-}).listen(80);
+}).listen(88);
 
 const wss = new WebSocket.Server({ server });
 
@@ -75,6 +125,8 @@ wss.on('connection', function connection(ws) {
 
     ws.on('message', function incoming(message) {
       console.log('Received: %s', message);
+      console.log(typeof(message));
+      console.log(message);
       wss.clients.forEach(cl => cl.send(message));
     });
 
@@ -91,9 +143,7 @@ wss.on('connection', function connection(ws) {
 
 const mysql = require("mysql2");
 
-var homeLocations = [];
-var elementTypes = [];
-var locationElements = [];
+
   
 const connection = mysql.createConnection({
   host: "localhost",
@@ -111,45 +161,54 @@ connection.connect(function(err){
     }
  });
 
-connection.query("SELECT * FROM homeLocation Order by idhomelocation Asc",
-    function(err, results, fields) {
-        if(err == null){
-            results.forEach(el => {
-                homeLocations.push(el);
-            });
-        }
-        else{
-            console.log(err);
-        }
-});
+function updateDataFromDB(){
+    homeLocations = [];
+    connection.query("SELECT * FROM homeLocation Order by idhomelocation Asc",
+        function(err, results, fields) {
+            if(err == null){
+                results.forEach(el => {
+                    homeLocations.push(el);
+                });
+    
+               //console.log(homeLocations);
+            }
+            else{
+                console.log(err);
+            }
+    });
+    
+    elementTypes = [];
+    connection.query("SELECT * FROM elementType ORDER BY idElementType ASC",
+        function(err, results, fields) {
+            if(err == null){
+                results.forEach(el => {
+                    elementTypes.push(el);
+                });
+    
+                //console.log(elementTypes);
+            }
+            else{
+                console.log(err);
+            }
+    });
+    
+    locationElements = [];
+    connection.query("SELECT * FROM locationElement ORDER BY idlocationElement ASC",
+        function(err, results, fields) {
+            if(err == null){
+                results.forEach(el => {
+                    locationElements.push(el);
+                });
+    
+                //console.log(locationElements);
+            }
+            else{
+                console.log(err);
+            }
+    });
+}
 
-connection.query("SELECT * FROM elementType ORDER BY idElementType ASC",
-    function(err, results, fields) {
-        if(err == null){
-            results.forEach(el => {
-                elementTypes.push(el);
-            });
-        }
-        else{
-            console.log(err);
-        }
-});
-
-connection.query("SELECT * FROM locationElement ORDER BY idlocationElement ASC",
-    function(err, results, fields) {
-        if(err == null){
-            results.forEach(el => {
-                locationElements.push(el);
-            });
-        }
-        else{
-            console.log(err);
-        }
-});
-
-
-
-
+updateDataFromDB();
 
 function homePage(){
     let page = "";
@@ -161,6 +220,7 @@ function homePage(){
                 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>\
                 <title>SmartHouseNV</title>\
                 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">\
+                <script src="https://kit.fontawesome.com/052fa37aec.js" crossorigin="anonymous"></script>\
                 <link rel="stylesheet" type="text/css" href="style.css">\
             </head>';
 
@@ -182,6 +242,13 @@ function homePage(){
                             <div class="dropdown-menu" aria-labelledby="dropdown01">\
                                 <a class="dropdown-item" href="/weather">weather</a>\
                                 <a class="dropdown-item mb-2" href="/settings">settings</a>\
+                                <div class="dropdown-item">';
+    
+    page += '<input type="checkbox" id="editMode">';
+    
+    
+    page +=                    '<label class="ml-2"> Edit mode</label>\
+                                </div>\
                             </div>\
                         </li>\
                     </ul>\
@@ -201,22 +268,28 @@ function homePage(){
                  <div class="container mt-4">\
                     <div class="row">';
 
+        // homeLocation contant
         for(let j = 0; j < locationElements.length; ++j){
             if(locationElements[j].idHomeLocation == homeLocations[i].idHomeLocation){
                 let idElement = locationElements[j].idElementType;
                 let elementTitle = elementTypes[idElement - 1].title;
                 let locationTitle = locationElements[j].title;
 
-                console.log(homeLocations[i].title + " - " + locationTitle + " - " + elementTitle + " - " + locationElements[j].port);
+                //console.log(homeLocations[i].title + " - " + locationTitle + " - " + elementTitle + " - " + locationElements[j].port);
                 
                 let colmd = "col-md-3";
                 let buff = "";
 
                 switch(elementTitle){
                     case "SimpleButton":
+                        buff += '<button type="button" class="btn btn-outline-success">Click</button>';
                         break;
                     
                     case "DoubleButton":
+                        buff += '<div class="btn-group">\
+                                    <button type="button" class="btn btn-outline-success">On</button>\
+                                    <button type="button" class="btn btn-outline-danger">Off</button>\
+                                </div>';
                         break;
 
                     case "TripleButton":
@@ -248,12 +321,86 @@ function homePage(){
                 page += '<div class="'+ colmd + ' mb-4">\
                             <div class="card">\
                                 <div class="card-body mt-1">\
+                                <div name="editButtons" class="text-right d-none">\
+									<a href="">\
+										<i class="far fa-edit text-muted"></i>\
+									</a>\
+									<a href="">\
+										<i class="fas fa-times-circle text-danger"></i>\
+									</a>\
+								</div>\
                                     <h5 class="card-title ">' + locationTitle + '</h5>';
+               
                 page += buff;
-
+            
                 page += '</div></div></div>';
             }
         }
+
+       
+            page += '</div><div name="addForm" class="row d-none center-block">\
+                        <div class="col-md-3 mb-4">\
+                            <div class="card">\
+                                <div class="card-body mt-1">\
+                                    <h5 class="card-title">Add new item</h5>\
+                                    <label class="sr-only" for="inlineFormInputGroup">Username</label>\
+                                    <div class="input-group mb-2">\
+                                        <div class="input-group-prepend">\
+                                            <div class="input-group-text">Label</div>\
+                                        </div>\
+                                        <input name="title" type="text" class="form-control" value="" placeholder="Enter">\
+                                    </div>\
+                                    \
+                                    <div class="input-group mb-2">\
+                                        <div class="input-group-prepend">\
+                                        <label class="input-group-text">Type</label>\
+                                        </div>\
+                                        <select name="selectType" class="custom-select">';
+                                       
+                                        
+                                        elementTypes.forEach(el => {
+                                            page += '<option>' + el.title + '</option>';
+                                        });
+
+
+                                       page+='</select>\
+                                    </div>\
+                                    <div class="input-group mb-3">\
+                                        <div class="input-group-prepend">\
+                                            <label class="input-group-text" for="inputGroupSelect01">Port</label>\
+                                        </div>\
+                                        <select name="port" class="custom-select">\
+                                            <option>A0</option>\
+                                            <option>A1</option>\
+                                            <option>A2</option>\
+                                            <option>A3</option>\
+                                            <option>A4</option>\
+                                            <option>A5</option>\
+                                            <option>A6</option>\
+                                            <option>A7</option>\
+                                            <option>A8</option>\
+                                            <option>A9</option>\
+                                            <option>A10</option>\
+                                            <option>A11</option>\
+                                            <option>A12</option>\
+                                            <option>A13</option>\
+                                            <option>A14</option>\
+                                            <option>A15</option>\
+                                            <option>B0</option>\
+                                            <option>B1</option>\
+                                            <option>B2</option>\
+                                            <option>B3</option>\
+                                            <option>B4</option>\
+                                            <option>B5</option>\
+                                        </select>\
+                                    </div>\
+                                    <button name="addButton" type="button" class="btn btn-success w-100">Add</button>\
+                                </div>\
+                            </div>\
+                        </div>\
+                    </div>';
+        
+                
         page += '</div></div></div>';
     }
     
