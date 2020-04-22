@@ -83,35 +83,10 @@ ws.onclose = event => {
 document.addEventListener("click", eventsHandler, false);
 document.addEventListener("input", eventsHandler, false);
 document.addEventListener("change", eventsHandler, false);
+
 var testArr;
+var test;
 
-function setEditMode(){
-    let elements = document.getElementsByName("editButtons");
-    for(let i = 0; i < elements.length; ++i){
-        removeClass(elements[i],"d-none");
-        addClass(elements[i], "mt-n4");
-        addClass(elements[i], "mr-n3");
-    }
-
-    elements = document.getElementsByName("addForm");
-    for(let i = 0; i < elements.length; ++i){
-        removeClass(elements[i],"d-none");
-    }
-}
-
-function unsetEditMode(){
-    let elements = document.getElementsByName("editButtons");
-    for(let i = 0; i < elements.length; ++i){
-        addClass(elements[i],"d-none");
-        removeClass(elements[i], "mr-n3");
-        removeClass(elements[i], "mr-n3");
-    }
-
-    elements = document.getElementsByName("addForm");
-    for(let i = 0; i < elements.length; ++i){
-        addClass(elements[i],"d-none");
-    }
-}
 
 /*
     Обработчик исходящего сообщения
@@ -120,37 +95,80 @@ var lastTarget = null;
 function eventsHandler(event)
 {
     let currentTarget = event.target;
-    let homeLocation = null;    
 
+    //Чтобы для одного элемента обработчик не вызывался несколько раз
     if(lastTarget == currentTarget){
         return;
     }
+    else{
+        lastTarget = currentTarget;
+        //console.log(currentTarget);
+    }
 
+    
+
+    //Спустя 200мс разрешаем тому же элементу вызывать обработчик
     setTimeout(()=>{
-        lastTarget = null
-        console.log("Cleat lastTarget");
+        lastTarget = null;
     }, 200);
 
-    lastTarget = currentTarget;
-
+    //Определяем в какой локации находится элемент, вызвавший обработчик
+    let homeLocation = null;
     if(currentTarget.closest("#Bedroom")){
         homeLocation = "Bedroom";
     }
-
-    if(currentTarget.closest("#Hall")){
+    else if(currentTarget.closest("#Hall")){
         homeLocation = "Hall";
     }
-
-    if(currentTarget.closest("#Bathroom")){
+    else if(currentTarget.closest("#Bathroom")){
         homeLocation = "Bathroom";
     }
-
-    if(currentTarget.closest("#Kitchen")){
+    else if(currentTarget.closest("#Kitchen")){
         homeLocation = "Kitchen";
     }
+    else{
+        //console.log("Home location not selected!");
+    }
+
+    //Если объект, вызвавший обработчик, является ссылкой, то это кнопки редактирования
+    if(event.target.tagName == "I" || event.target.tagName == "A"){
+        
+        //console.log(event.target);
+        
+        if(event.target.title == "edit"){
+            let title =  event.target.parentElement.parentElement.parentElement.children[1].textContent;
+            console.log("Edit: " + homeLocation + " - " + title);
+        }
+        else if(event.target.title == "delete"){
+            let title =  event.target.parentElement.parentElement.parentElement.children[1].textContent;
+            console.log("Delete: " + homeLocation + " - " + title);
+            deleteLocationElementFromDB(homeLocation, title)
+        }
+        else if(event.target.title == "add"){
+            //Добавление
+            console.log("Add");
+            
+            let currentTitle = getCurrentElementByName("title", homeLocation);
+            let currentSelect = getCurrentElementByName("selectType", homeLocation);
+            let currentPort = getCurrentElementByName("port", homeLocation);
+
+            addNewLocationElementToDB(homeLocation, currentTitle.value, currentSelect.value, currentPort.value);
+
+            currentTitle.value = "";
+            currentSelect.value = "";  
+        }
+        else{
+            //console.log("Unhandled title!");
+        }
+
+        return;
+    }
     
-    //Если элемент имеет id, то это системное сообщение, не нужно его отсылать остальным
-    if(currentTarget.id || currentTarget.name == "addButton"){
+    /*
+        Если элемент имеет id, то это системное сообщение, не нужно его отсылать остальным
+    */
+    //TODO: Переместить button к ссылка, наверх.
+    if(currentTarget.id){
 
         if(currentTarget.type == "checkbox"){
             editMode = !editMode;
@@ -161,55 +179,28 @@ function eventsHandler(event)
             else{
                 unsetEditMode();
             }
-        }  
-        
-        if(currentTarget.type == "button"){
-            testArr = document.getElementsByName("title");
-            let currentTitle;
-            testArr.forEach(el => {
-                if(el.closest("#" + homeLocation)){
-                    currentTitle = el;
-                }
-            })
 
+            let windowWidht = document.documentElement.clientWidth;
 
-            testArr = document.getElementsByName("selectType");
-            let currentSelect;
-            testArr.forEach(el => {
-                if(el.closest("#" + homeLocation)){
-                    currentSelect = el;
-                }
-            })
-
-            testArr = document.getElementsByName("port");
-            let currentPort;
-            testArr.forEach(el => {
-                if(el.closest("#" + homeLocation)){
-                    currentPort = el;
-                }
-            })
-            
-            console.log(homeLocation + " - " + currentTitle + " - " + currentSelect.value);
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', 'http://192.168.1.102:88/addNewLocationElement?homeLocation='+ homeLocation + '&title=' + currentTitle.value + "&type=" + currentSelect.value + "&port=" + currentPort.value, false);
-            xhr.send();
-            if (xhr.status != 200) {
-                alert( xhr.status + ': ' + xhr.statusText ); 
-            } 
-            else{
-                console.log( xhr.responseText );
+            if(windowWidht >= 760){
+                document.getElementById("dropDownToggle").click();
             }
-
-            currentTitle.value = "";
-            currentSelect.value = "";
-
+            else{
+                document.getElementById("toggleNavBarS").click();
+            }
             
-        }
+            return;
+        }  
     }
     else{
-        
-    
+        /* 
+            Сюда попадают элементы управления, состояние которых, следует передать всем клиентам
+        */
+
+        if(currentTarget.name == ""){
+            console.log("Name not set");
+            return;
+        }
     
         let commandsArr = [];
         switch(currentTarget.type){
@@ -244,21 +235,93 @@ function eventsHandler(event)
                     "value": currentTarget.value
                 });
                 break;
-    
+   
             default:
-                console.log("Not handler: " + event.target + " - " + event.target.type);
+                console.log("Not handler: id:" + event.target.id + " targetType: " + event.target.type);
+                //console.log(event.target);  
+                return;
         }
+
+        commandsArrJSON = JSON.stringify(commandsArr);
+        ws.send(commandsArrJSON);
+
+        console.log("Output:");
+        console.log(commandsArrJSON);
+    }
+}
+
+// Возобновляет видимость элементов редактирования
+function setEditMode(){
+    let elements = document.getElementsByName("editButtons");
+    for(let i = 0; i < elements.length; ++i){
+        removeClass(elements[i],"d-none");
+        addClass(elements[i], "mt-n4");
+        addClass(elements[i], "mr-n3");
+    }
+
+    elements = document.getElementsByName("addForm");
+    for(let i = 0; i < elements.length; ++i){
+        removeClass(elements[i],"d-none");
+    }
+}
+
+// Отменяет видимость элементов редактирования
+function unsetEditMode(){
+    let elements = document.getElementsByName("editButtons");
+    for(let i = 0; i < elements.length; ++i){
+        addClass(elements[i],"d-none");
+        removeClass(elements[i], "mr-n3");
+        removeClass(elements[i], "mr-n3");
+    }
+
+    elements = document.getElementsByName("addForm");
+    for(let i = 0; i < elements.length; ++i){
+        addClass(elements[i],"d-none");
+    }
+}
+
+//Удаляет заданный элемент из БД
+function deleteLocationElementFromDB(homeLocation, title){
+    executeAsyncRequest('http://192.168.1.102:88/deleteLocationElement?homeLocation='+ homeLocation + '&title=' + title);
+}
+
+//Добавляет новый элемент локации в БД
+function addNewLocationElementToDB(homeLocation, title, type, port){
+    executeAsyncRequest('http://192.168.1.102:88/addNewLocationElement?homeLocation='+ homeLocation + '&title=' + title + "&type=" + type + "&port=" + port);
+}
+
+//Выполняет заданный запрос асинхронно
+function executeAsyncRequest(request){
+    let xhr = new XMLHttpRequest();
+    xhr.open('GET', request, true);
     
-        if(commandsArr.length > 0){
-            commandsArrJSON = JSON.stringify(commandsArr);
-    
-            console.log("Output:");
-            console.log(commandsArrJSON);
-            ws.send(commandsArrJSON);
+    xhr.send();
+
+    xhr.onreadystatechange = function() {
+        if(xhr.readyState != 4) return;
+
+        if(xhr.status != 200){
+            console.log(xhr.status + ': ' + xhr.statusText);
         }
     }
 }
 
+//Возвращает элемент с заданым именем, который находится в той же области, что и элемент вызвавший событие
+function getCurrentElementByName(name, homeLocation){
+    let arr = document.getElementsByName(name);
+    for(let i = 0; i < arr.length; ++i){
+        if(arr[i].closest("#" + homeLocation)){
+            return arr[i];
+        }
+    }
+}
+
+
+
+
+
+
+/************* Визуальная часть *************/
 
 function hasClass(elem, className) {
     return new RegExp(' ' + className + ' ').test(' ' + elem.className + ' ');

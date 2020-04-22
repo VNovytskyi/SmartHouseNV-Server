@@ -8,6 +8,8 @@ var elementTypes = [];
 var locationElements = [];
 
 const server = http.createServer(function (req, res) {
+    let homeLocationIndex, elementTitle, port;
+
     let urlObj = url.parse(req.url, true);
 
     switch(urlObj.pathname)
@@ -65,47 +67,30 @@ const server = http.createServer(function (req, res) {
         case "/addNewLocationElement":
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.end();
-
-            let hl = homeLocations.find((el) => {
-                if(urlObj.query['homeLocation'] == el.title){
-                    return el;
-                } 
-            });
-            hl = hl.idHomeLocation;
-
-
-            let et = elementTypes.find((el) => {
-                if(urlObj.query['type'] == el.title){
-                    return el;
-                } 
-            });
-            et = et.idElementType;
-
-            let title = urlObj.query['title'];
             
-            
-            let p = urlObj.query['port'];
+            homeLocationIndex = getIndexByTitle(homeLocations, urlObj.query['homeLocation']).idHomeLocation;
+            typeIndex = getIndexByTitle(elementTypes, urlObj.query['type']).idElementType;
+           
+            elementTitle = urlObj.query['title'];
+            port = urlObj.query['port'];
 
+            console.log("Add: " + urlObj.query['homeLocation'] + "(" + homeLocationIndex + ") - " + urlObj.query['type'] + "(" + typeIndex + ") - " + elementTitle + " - " + port);
 
-            connection.query("INSERT INTO `locationelement` (`idLocationElement`, `idHomeLocation`, `idElementType`, `title`, `port`) VALUES (NULL, " + hl +  ", " + et + ", '" + title + "', '" + p +"')",
-                function(err, results, fields) {
-                    if(err == null){
-                       console.log("Query ok");
-                    }
-                    else{
-                        console.log(err);
-                    }
-            });
-            
-            updateDataFromDB();
-            
-            setTimeout(() => {
-                let page = homePage();
-                let message = [{name: 'body', value: page}];
-                wss.clients.forEach(cl => cl.send(JSON.stringify(message)));
-            }, 1000);
-            
+            executeRequest("INSERT INTO `locationelement` (`idLocationElement`, `idHomeLocation`, `idElementType`, `title`, `port`) VALUES (NULL, " + homeLocationIndex +  ", " + typeIndex + ", '" + elementTitle + "', '" + port +"')", updateDataFromDB);
+        break;
 
+        case "/deleteLocationElement":
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end();
+
+            homeLocationIndex = getIndexByTitle(homeLocations, urlObj.query['homeLocation']);
+            homeLocationIndex = homeLocationIndex.idHomeLocation;
+
+            elementTitle = urlObj.query['title'];
+
+            console.log("Delete: " + urlObj.query['homeLocation'] + "(" + homeLocationIndex + ") - " + elementTitle);
+            
+            executeRequest("DELETE FROM `locationelement` WHERE `idHomeLocation` = " + homeLocationIndex + " AND `title` = '" + elementTitle + "'", updateDataFromDB);
         break;
 
         default:
@@ -141,10 +126,40 @@ wss.on('connection', function connection(ws) {
     //bringUpToDate(ws);
 });
 
+function getIndexByTitle(arr, title){
+    let element;
+    
+    for(let i = 0; i < arr.length; ++i){
+        if(title == arr[i].title){
+            element = arr[i];
+            break;
+        }
+    }
+
+    return element;
+}
+
+function executeRequest(request, callback){
+    
+    connection.query(request,
+        function(err, results, fields) {
+            if(err == null){
+               console.log("Query ok");
+               
+               if(callback != undefined){
+                   callback();
+               }
+            }
+            else{
+                console.log("Error from MySQL");
+                console.log("Request: " + request);
+                console.log(err);
+            }
+    });
+}
+
 const mysql = require("mysql2");
 
-
-  
 const connection = mysql.createConnection({
   host: "localhost",
   user: "vladyslavN",
@@ -159,9 +174,11 @@ connection.connect(function(err){
     else{
       console.log("Подключение к серверу MySQL успешно установлено");
     }
- });
+});
 
 function updateDataFromDB(){
+    console.log("Update data from DB");
+
     homeLocations = [];
     connection.query("SELECT * FROM homeLocation Order by idhomelocation Asc",
         function(err, results, fields) {
@@ -171,6 +188,7 @@ function updateDataFromDB(){
                 });
     
                //console.log(homeLocations);
+               updateWebPage();
             }
             else{
                 console.log(err);
@@ -186,6 +204,7 @@ function updateDataFromDB(){
                 });
     
                 //console.log(elementTypes);
+                updateWebPage()
             }
             else{
                 console.log(err);
@@ -201,14 +220,41 @@ function updateDataFromDB(){
                 });
     
                 //console.log(locationElements);
+                updateWebPage();
             }
             else{
                 console.log(err);
             }
     });
 }
-
 updateDataFromDB();
+
+
+var countUpdateArrays = 3;
+var currentCountUpdateArrays = 0;
+var serverInit = true;
+
+function updateWebPage(){
+
+    ++currentCountUpdateArrays;
+
+    if(currentCountUpdateArrays == countUpdateArrays){
+        let page = homePage();
+        let message = [{name: 'body', value: page}];
+        wss.clients.forEach(cl => cl.send(JSON.stringify(message)));
+
+        currentCountUpdateArrays = 0;
+        console.log("Send updated web-page");
+    }
+}
+
+
+
+
+
+
+
+/*********************************** Pages ************************************************/
 
 function homePage(){
     let page = "";
@@ -227,8 +273,8 @@ function homePage(){
     page += '<body class="pt-5">\
               <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">\
                 <a class="navbar-brand" href="#">SmartHouseNV</a>\
-                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">\
-                <span class="navbar-toggler-icon"></span>\
+                <button id="toggleNavBarB" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">\
+                <span id="toggleNavBarS" class="navbar-toggler-icon"></span>\
                 </button>\
                 <div class="collapse navbar-collapse" id="navbarsExampleDefault">\
                     <ul class="navbar-nav mr-auto">';
@@ -238,7 +284,7 @@ function homePage(){
                         });
                        
     page +=            '<li class="nav-item dropdown">\
-                            <a class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Other</a>\
+                            <a id="dropDownToggle" class="nav-link dropdown-toggle" href="http://example.com" id="dropdown01" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Other</a>\
                             <div class="dropdown-menu" aria-labelledby="dropdown01">\
                                 <a class="dropdown-item" href="/weather">weather</a>\
                                 <a class="dropdown-item mb-2" href="/settings">settings</a>\
@@ -322,12 +368,12 @@ function homePage(){
                             <div class="card">\
                                 <div class="card-body mt-1">\
                                 <div name="editButtons" class="text-right d-none">\
-									<a href="">\
-										<i class="far fa-edit text-muted"></i>\
-									</a>\
-									<a href="">\
-										<i class="fas fa-times-circle text-danger"></i>\
-									</a>\
+									<button type="button" style="border: none;background: inherit;">\
+										<i title="edit" class="far fa-edit text-muted"></i>\
+									</button>\
+									<button type="button" style="border: none;background: inherit;">\
+										<i title="delete"class="fas fa-times-circle text-danger"></i>\
+									</button>\
 								</div>\
                                     <h5 class="card-title ">' + locationTitle + '</h5>';
                
@@ -394,7 +440,7 @@ function homePage(){
                                             <option>B5</option>\
                                         </select>\
                                     </div>\
-                                    <button name="addButton" type="button" class="btn btn-success w-100">Add</button>\
+                                    <a name="addButton" title="add" class="btn btn-success w-100">Add</a>\
                                 </div>\
                             </div>\
                         </div>\
@@ -456,4 +502,3 @@ function signInPage(){
 
     return str;
 }
-
