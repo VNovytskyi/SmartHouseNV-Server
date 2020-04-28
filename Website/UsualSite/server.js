@@ -8,6 +8,7 @@ var elementTypes = [];
 var locationElements = [];
 
 const server = http.createServer(function (req, res) {
+    let homeLocation;
     let homeLocationIndex, elementTitle, port;
 
     let urlObj = url.parse(req.url, true);
@@ -68,7 +69,15 @@ const server = http.createServer(function (req, res) {
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.end();
             
-            homeLocationIndex = getIndexByTitle(homeLocations, urlObj.query['homeLocation']).idHomeLocation;
+            homeLocation = getIndexByTitle(homeLocations, urlObj.query['homeLocation']);
+
+            if(homeLocation == null){
+                
+                break;
+            }
+            
+            homeLocationIndex = homeLocation.idHomeLocation;
+
             typeIndex = getIndexByTitle(elementTypes, urlObj.query['type']).idElementType;
            
             elementTitle = urlObj.query['title'];
@@ -127,7 +136,7 @@ wss.on('connection', function connection(ws) {
 });
 
 function getIndexByTitle(arr, title){
-    let element;
+    let element = null;
     
     for(let i = 0; i < arr.length; ++i){
         if(title == arr[i].title){
@@ -369,14 +378,15 @@ function homePage(){
                                 <div class="card-body mt-1">\
                                 <div name="editButtons" class="text-right d-none">\
 									<button type="button" style="border: none;background: inherit;">\
-										<i title="edit" class="far fa-edit text-muted"></i>\
-									</button>\
-									<button type="button" style="border: none;background: inherit;">\
-										<i title="delete"class="fas fa-times-circle text-danger"></i>\
+										<i title="delete" class="fas fa-times-circle text-danger"></i>\
 									</button>\
 								</div>\
                                     <h5 class="card-title ">' + locationTitle + '</h5>';
-               
+               /*
+                    <button type="button" style="border: none;background: inherit;">\
+						<i title="edit" class="far fa-edit text-muted"></i>\
+					</button>\
+               */
                 page += buff;
             
                 page += '</div></div></div>';
@@ -388,20 +398,21 @@ function homePage(){
                         <div class="col-md-3 mb-4">\
                             <div class="card">\
                                 <div class="card-body mt-1">\
-                                    <h5 class="card-title">Add new item</h5>\
+                                    <h5 class="card-title"><i class="fas fa-plus-square"></i>Add new item</h5>\
                                     <label class="sr-only" for="inlineFormInputGroup">Username</label>\
                                     <div class="input-group mb-2">\
                                         <div class="input-group-prepend">\
                                             <div class="input-group-text">Label</div>\
                                         </div>\
-                                        <input name="title" type="text" class="form-control" value="" placeholder="Enter">\
+                                        <input name="title" type="text" class="form-control" value="" placeholder="Enter title">\
                                     </div>\
                                     \
                                     <div class="input-group mb-2">\
                                         <div class="input-group-prepend">\
                                         <label class="input-group-text">Type</label>\
                                         </div>\
-                                        <select name="selectType" class="custom-select">';
+                                        <select name="selectType" class="custom-select">\
+                                            <option>Select type</option>';
                                        
                                         
                                         elementTypes.forEach(el => {
@@ -416,6 +427,7 @@ function homePage(){
                                             <label class="input-group-text" for="inputGroupSelect01">Port</label>\
                                         </div>\
                                         <select name="port" class="custom-select">\
+                                            <option>Select port</option>\
                                             <option>A0</option>\
                                             <option>A1</option>\
                                             <option>A2</option>\
@@ -440,7 +452,7 @@ function homePage(){
                                             <option>B5</option>\
                                         </select>\
                                     </div>\
-                                    <a name="addButton" title="add" class="btn btn-success w-100">Add</a>\
+                                    <a name="addButton" title="add" class="btn btn-success w-100 text-light">Add</a>\
                                 </div>\
                             </div>\
                         </div>\

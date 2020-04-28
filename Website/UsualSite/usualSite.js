@@ -1,30 +1,36 @@
+// Разрешает или запрещает отображение элеметов редактирования.
 var editMode = false;
 
+var ip = "192.168.1.106";
+//var ip = "192.168.1.102:88";
 
-//var ws = new WebSocket('ws://192.168.1.106', 'protocolOne');
-var ws = new WebSocket('ws://192.168.1.102:88', 'protocolOne');
+var ws = new WebSocket('ws://' + ip, 'protocolOne');
 
-ws.onopen = (event) => {
+ws.onopen = (msg) => {
     console.log("WebSocket open");
 }
 
-ws.onerror = (event) => {
+ws.onerror = (msg) => {
     console.log("WebSocket error");
-    console.log(event);
+    console.log(msg);
 }
 
-/*
-    Обработчик входящего сообщения
-*/
-var elements;
-ws.onmessage = event => {
-    let commandArr = JSON.parse(event.data);
+ws.onclose = msg => {
+    console.log("WebSocket close");
+};
+
+/**
+ * Обработчик входящего сообщения. Вызывается, когда от WebSocket сервера приходит сообщение, и обрабатывает его
+ */
+ws.onmessage = msg => {
+    let commandArr = JSON.parse(msg.data);
     console.log("Input");
     console.log(commandArr);
   
-    commandArr.forEach(element => {
-        elements = document.getElementsByName(element.name);
-        
+    for(let i = 0; i < commandArr.length; ++i){
+        let element = commandArr[i];
+
+        //Если пришел новый контент для body
         if(element.name ==  "body"){
             document.body.innerHTML = element.value;
             document.getElementById("editMode").checked = editMode;
@@ -37,22 +43,24 @@ ws.onmessage = event => {
             }
 
             console.log("New body");
+            continue;
         }
-
+        
+        let elements = document.getElementsByName(element.name);
+        
         if(elements.length == 0){
-            console.log("Not elements!");
+            console.log("Not elements with name: " + element.name);
             return;
         }
 
+        let target = null;  
         
-        
-        let target = null;
-        
-        elements.forEach(el => {
-            if(el.closest("#" + element.homeLocation)){
-                target = el;
+        for(let i = 0; i < elements.length; ++i){
+            if(elements[i].closest("#" + element.homeLocation)){
+                target = elements[i];
+                break;
             }
-        });
+        }
 
         if(target != null){
             switch(target.type){
@@ -63,7 +71,6 @@ ws.onmessage = event => {
                 case "range":
                 case "color":
                     target.value = element.value;
-                    console.log("New body");
                 break;
 
                 default:
@@ -72,12 +79,9 @@ ws.onmessage = event => {
         }else{
             console.log("[ ERROR ] Target = null");
         }
-    });
+    };
 };
 
-ws.onclose = event => {
-    console.log("WebSocket close");
-};
 
 //TODO: Fix bug - for one object eventsHandler() may be called several time
 document.addEventListener("click", eventsHandler, false);
@@ -87,27 +91,25 @@ document.addEventListener("change", eventsHandler, false);
 var testArr;
 var test;
 
-
-/*
-    Обработчик исходящего сообщения
-*/
 var lastTarget = null;
+
+/**
+ *  Обработчик исходящего сообщения
+ * @param {*} event 
+ */
 function eventsHandler(event)
 {
     let currentTarget = event.target;
 
-    //Чтобы для одного элемента обработчик не вызывался несколько раз
-    if(lastTarget == currentTarget){
+    //Чтобы для одного элемента обработчик не вызывался несколько раз, если только этот элемент не range. (ибо получаем не плавное движение и не последнее значение)
+    if(lastTarget == currentTarget && currentTarget.type != "range"){
         return;
     }
     else{
         lastTarget = currentTarget;
-        //console.log(currentTarget);
     }
 
-    
-
-    //Спустя 200мс разрешаем тому же элементу вызывать обработчик
+    //Спустя 200мс разрешаем любому элементу вызывать обработчик
     setTimeout(()=>{
         lastTarget = null;
     }, 200);
@@ -126,42 +128,50 @@ function eventsHandler(event)
     else if(currentTarget.closest("#Kitchen")){
         homeLocation = "Kitchen";
     }
-    else{
-        //console.log("Home location not selected!");
-    }
 
     //Если объект, вызвавший обработчик, является ссылкой, то это кнопки редактирования
-    if(event.target.tagName == "I" || event.target.tagName == "A"){
-        
-        //console.log(event.target);
+    if(event.target.tagName == "I" || event.target.tagName == "A"){   
         
         if(event.target.title == "edit"){
+            //TODO: реализовать редактирование
             let title =  event.target.parentElement.parentElement.parentElement.children[1].textContent;
             console.log("Edit: " + homeLocation + " - " + title);
         }
         else if(event.target.title == "delete"){
             let title =  event.target.parentElement.parentElement.parentElement.children[1].textContent;
-            console.log("Delete: " + homeLocation + " - " + title);
             deleteLocationElementFromDB(homeLocation, title)
         }
-        else if(event.target.title == "add"){
-            //Добавление
-            console.log("Add");
-            
+        else if(event.target.title == "add"){ 
             let currentTitle = getCurrentElementByName("title", homeLocation);
             let currentSelect = getCurrentElementByName("selectType", homeLocation);
             let currentPort = getCurrentElementByName("port", homeLocation);
 
+            /**
+             * Защита от неправильного ввода
+             */
+            if(currentTitle.value == ""){
+                console.log("Title cannot be empty");
+                return;
+            }
+            
+            if(currentSelect.value == "Select type"){
+                console.log("Please, select type");
+                return;
+            }
+
+            if(currentPort.value == "Select port"){
+                console.log("Please, select port");
+                return;
+            }
+
             addNewLocationElementToDB(homeLocation, currentTitle.value, currentSelect.value, currentPort.value);
 
-            currentTitle.value = "";
-            currentSelect.value = "";  
-        }
-        else{
-            //console.log("Unhandled title!");
-        }
+            currentTitle.value = "Enter title";
+            currentSelect.value = 0; 
+            currentPort.value = 0; 
 
-        return;
+            return;
+        }
     }
     
     /*
@@ -193,10 +203,9 @@ function eventsHandler(event)
         }  
     }
     else{
-        /* 
-            Сюда попадают элементы управления, состояние которых, следует передать всем клиентам
-        */
-
+        /**
+         * Сюда попадают элементы управления, состояние которых, следует передать всем клиентам
+         */
         if(currentTarget.name == ""){
             console.log("Name not set");
             return;
@@ -250,7 +259,9 @@ function eventsHandler(event)
     }
 }
 
-// Возобновляет видимость элементов редактирования
+/**
+ * Возобновляет видимость элементов редактирования
+ */
 function setEditMode(){
     let elements = document.getElementsByName("editButtons");
     for(let i = 0; i < elements.length; ++i){
@@ -265,7 +276,9 @@ function setEditMode(){
     }
 }
 
-// Отменяет видимость элементов редактирования
+/**
+ * Отменяет видимость элементов редактирования
+ */
 function unsetEditMode(){
     let elements = document.getElementsByName("editButtons");
     for(let i = 0; i < elements.length; ++i){
@@ -280,17 +293,30 @@ function unsetEditMode(){
     }
 }
 
-//Удаляет заданный элемент из БД
+/**
+ * Delete selected element from DB
+ * @param {string} homeLocation Home location title
+ * @param {string} title Title of element to delete
+ */
 function deleteLocationElementFromDB(homeLocation, title){
-    executeAsyncRequest('http://192.168.1.102:88/deleteLocationElement?homeLocation='+ homeLocation + '&title=' + title);
+    executeAsyncRequest('http://' + ip + '/deleteLocationElement?homeLocation='+ homeLocation + '&title=' + title);
 }
 
-//Добавляет новый элемент локации в БД
+/**
+ * Add new location element to DB
+ * @param {string} homeLocation 
+ * @param {string} title 
+ * @param {string} type 
+ * @param {string} port 
+ */
 function addNewLocationElementToDB(homeLocation, title, type, port){
-    executeAsyncRequest('http://192.168.1.102:88/addNewLocationElement?homeLocation='+ homeLocation + '&title=' + title + "&type=" + type + "&port=" + port);
+    executeAsyncRequest('http://' + ip + '/addNewLocationElement?homeLocation='+ homeLocation + '&title=' + title + "&type=" + type + "&port=" + port);
 }
 
-//Выполняет заданный запрос асинхронно
+/**
+ * Execute request async
+ * @param {string} request SQL request to DB
+ */
 function executeAsyncRequest(request){
     let xhr = new XMLHttpRequest();
     xhr.open('GET', request, true);
@@ -306,7 +332,11 @@ function executeAsyncRequest(request){
     }
 }
 
-//Возвращает элемент с заданым именем, который находится в той же области, что и элемент вызвавший событие
+/**
+ * Возвращает элемент с заданым именем, который находится в той же области, что и элемент вызвавший событие
+ * @param {string} name Name of element to search
+ * @param {string} homeLocation Title of home location
+ */
 function getCurrentElementByName(name, homeLocation){
     let arr = document.getElementsByName(name);
     for(let i = 0; i < arr.length; ++i){

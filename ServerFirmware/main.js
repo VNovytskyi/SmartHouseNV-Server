@@ -6,7 +6,7 @@
 
 */
 
-
+//nrf.send([1, 1]);
 
 
 
@@ -68,6 +68,7 @@ function InitNRF() {
   nrf.setReg(0x06, 0x27);
   nrf.setReg(0x1C, 0x3F);
   nrf.setReg(0x1D, 0x06);
+  nrf.setReg(0x0e, 0x70);
 }
 
 InitNRF();
@@ -131,7 +132,7 @@ function sendWeatherData(temperature, humidity, pressure, batteryVoltage){
 
 function NRF_Handler(){
   setInterval(function() {
-    while (nrf.getDataPipe() !== undefined) {
+   if(digitalRead(NodeMCU.D0) == 0 && nrf.getDataPipe() !== undefined) {
       let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
 
@@ -232,7 +233,7 @@ function NRF_Handler(){
         }
       }
     }
-  }, 50);
+  }, 100);
 }
 
 
