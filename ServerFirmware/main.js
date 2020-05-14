@@ -40,9 +40,18 @@ var ipServerPC = "192.168.1.102";
 
 //------------------------- NRF часть -------------------------
 
-SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
 
-const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1);
+//ESP8266
+//SPI1.setup({sck: NodeMCU.D5, miso: NodeMCU.D6, mosi: NodeMCU.D7});
+//const nrf = require("NRF24L01P").connect( SPI1, NodeMCU.D8, NodeMCU.D1);
+
+
+//ESP32
+SPI1.setup({sck: D18, mosi: D23, miso: D19});
+const nrf = require("NRF24L01P").connect( SPI1, D5, D17);
+
+
+
 const http = require("http");
 var httpResult;
 
@@ -132,7 +141,7 @@ function sendWeatherData(temperature, humidity, pressure, batteryVoltage){
 
 function NRF_Handler(){
   setInterval(function() {
-   if(digitalRead(NodeMCU.D0) == 0 && nrf.getDataPipe() !== undefined) {
+   if(digitalRead(D16) == 0 && nrf.getDataPipe() !== undefined) {
       let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
 
