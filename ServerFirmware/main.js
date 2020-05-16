@@ -140,7 +140,8 @@ function sendWeatherData(temperature, humidity, pressure, batteryVoltage){
 }
 
 function NRF_Handler(){
-  setInterval(function() {
+  setWatch(() => {
+  //setInterval(function() {
    if(digitalRead(D16) == 0 && nrf.getDataPipe() !== undefined) {
       let dataPipe = nrf.getDataPipe();
       let data = nrf.getData();
@@ -242,7 +243,8 @@ function NRF_Handler(){
         }
       }
     }
-  }, 100);
+  //}, 100);
+  }, D16, {repeat:true});
 }
 
 
