@@ -196,7 +196,7 @@ function updateDataFromDB(){
                     homeLocations.push(el);
                 });
     
-               //console.log(homeLocations);
+               console.log(homeLocations);
                updateWebPage();
             }
             else{
@@ -212,7 +212,7 @@ function updateDataFromDB(){
                     elementTypes.push(el);
                 });
     
-                //console.log(elementTypes);
+                console.log(elementTypes);
                 updateWebPage()
             }
             else{
@@ -228,7 +228,7 @@ function updateDataFromDB(){
                     locationElements.push(el);
                 });
     
-                //console.log(locationElements);
+                console.log(locationElements);
                 updateWebPage();
             }
             else{
