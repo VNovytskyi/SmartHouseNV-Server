@@ -1,3 +1,6 @@
+/**
+ * Init NRF module. Must be called twice.
+ */
 exports.init = function(nrf){
 
     if(nrf != undefined){
@@ -54,10 +57,11 @@ exports.startHandler = function(){
         if(dataPipe !== undefined) {
             let msg = this.getMessage();
             
-            console.log("[ INFO ] New data NRF -> " + dataPipe + ": " + msg);
+            console.log("[ INFO ] New incomming data NRF -> " + dataPipe + ": " + msg);
     
             if(msg[0] != 0xFF || currentCommand != null){
                 if(currentCommand.toString() == msg.toString()){
+                    console.log("[ INFO ] Start broadcast");
                     broadcast(currentMessage);
                     currentCommand = null;
                 }

@@ -11,9 +11,9 @@ var currentMessage;
 
 
 /* Servers */
-var myWsServer = require("WebSocket_Part").init();
-var server = require('ws').createServer(myWsServer.httpHandler);
-myWsServer.addServer(server);
+//var myWsServer = require("WebSocket_Part").init();
+//var server = require('ws').createServer(myWsServer.httpHandler);
+//myWsServer.addServer(server);
 
 
 /* NRF */
@@ -33,50 +33,60 @@ var myNRF = require("NRF_Part").init(nrf);
 */
 const wifi = require("Wifi");
 console.log("[ INFO ] Connecting to access point...");
-wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
-  if (err !== null) {
-    throw err;
-  }
+if(typeof wifi !== 'undefined'){
 
-  wifi.getIP((err, data) => {
+  wifi.connect("MERCUSYS_7EBA", {password: "3105vlad3010vlada"}, err => {
+
     if (err !== null) {
       throw err;
     }
-    else{
-      console.log("[ OK ] Connecting to access point successfully.");
-      console.log("[ INFO ] IP: " + data.ip);
+
+    wifi.getIP((err, data) => {
+      if (err !== null) {
+        throw err;
+      }
+      else{
+        console.log("[ OK ] Connecting to access point successfully.");
+        console.log("[ INFO ] IP: " + data.ip);
 
 
-      /* Check NRF */
-      if(typeof myNRF !== 'undefined'){
-        if(myNRF != null){
-          console.log("[ OK ] NRF module.");
-          myNRF.init();
-          myNRF.startHandler();
-          console.log("[ OK ] NRF handler started");
+        /* Check NRF */
+        if(typeof myNRF !== 'undefined'){
+          if(myNRF != null){
+            console.log("[ OK ] NRF module.");
+
+            myNRF.init();
+            myNRF.startHandler();
+
+            console.log("[ OK ] NRF handler started");
+          }
+          else{
+            console.log("[ ERROR ] NRF module not connected or not work.");
+          }
         }
         else{
-          console.log("[ ERROR ] NRF module not connected or not work.");
+          console.log("[ WARNING ] NRF module no program involved. (myNRF == undefined).");
         }
-      }
-      else{
-        console.log("[ WARNING ] NRF module no program involved. (myNRF == undefined).");
-      }
 
-      /* Check Servers */
-      if(typeof myWsServer == 'undefined' || typeof server == 'undefined'){
-        console.log("[ ERROR ] WebSocket not running: myWsServer or server undefined.");
-      }
-      else if(typeof myWsServer.getServer() == 'undefined'){
-        console.log("[ ERROR ] WebSocket not running: not available servers to WebSocket.");
-      }
-      else{
-        console.log("[ OK ] HTTP and WebSocket servers running");
-      }
+        /* Check Servers */
+        if(typeof myWsServer == 'undefined' || typeof server == 'undefined'){
+          console.log("[ ERROR ] WebSocket not running: myWsServer or server undefined.");
+        }
+        else if(typeof myWsServer.getServer() == 'undefined'){
+          console.log("[ ERROR ] WebSocket not running: not available servers to WebSocket.");
+        }
+        else{
+          console.log("[ OK ] HTTP and WebSocket servers running");
+        }
 
+        console.log("[ INFO ] Free memory: " + process.memory().free + " / " + process.memory().total);
 
-      console.log("******************** Launch completed ********************");
-      console.log(" ");
-    }
+        console.log("******************** Launch completed ********************");
+        console.log(" ");
+      }
+    });
   });
-});
+}
+else{
+  console.log("[ ERROR ] Wifi module no program involve.");
+}
