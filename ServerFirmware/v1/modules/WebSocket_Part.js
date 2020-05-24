@@ -1,42 +1,44 @@
 
-this.clients = [];
+clients = [];
 
 exports.init = function(){
-    console.log("[ INFO ] Init server");
+    console.log("[ INFO ] Init webSocket server");
+    server.on('websocket', webSocketHandler);
+    server.listen(80);
     return this;
 }
 
-exports.addServer = function(server){
-    console.log("[ INFO ] Init webSocket server");
-    this.server = server;
-    this.server.on('websocket', webSocketHandler);
-    this.server.listen(80);
-}
-
-exports.getServer = function(){
-    return this.server;
-}
 
 exports.httpHandler = function(req, res){
-    res.writeHead(200, {'Content-Type': 'text/html'});
+    
 
-    let urlObj = url.parse(req.url, true);
-
-    switch(urlObj.pathname)
+    switch(req.url)
     {
         case "/":
         case "/home":
-        res.end("Home Page");
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            pageCreator.getHomePage(res);
+            res.end();
         break;
 
         case "/settings":
-        res.end("Settings Page");
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.end("Settings Page");
+        break;
+
+        case "/test":
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            pageCreator.getTestPage(res);
+            res.end();
         break;
 
         default:
-        res.end("404");
+            res.writeHead(404, {'Content-Type': 'text/html'});
+            res.end();
         break;
     }
+
+    console.log("[ INFO ] Request on server -> " + req.url);
 }
 
 
@@ -180,21 +182,5 @@ function broadcast(msg) {
 //TODO: обновить при переходе на файловую систему
 function bringUpToDate(ws)
 {
-  let commandsArr = [];
-
-  for(let i = 0; i < 16; ++i){
-    commandsArr.push({
-      name: "A" + i,
-      value: portA & (1 << i)? "on": "off"
-    });
-  }
-
-  for(let i = 0; i < 6; ++i){
-    commandsArr.push({
-      name: "B" + i,
-      value: portB[i]
-    });
-  }
-
-  ws.send(JSON.stringify(commandsArr));
+  
 }

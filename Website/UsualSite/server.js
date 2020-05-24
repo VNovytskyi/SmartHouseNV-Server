@@ -13,6 +13,8 @@ const server = http.createServer(function (req, res) {
 
     let urlObj = url.parse(req.url, true);
 
+    var data;
+
     switch(urlObj.pathname)
     {
         case "/":
@@ -88,8 +90,38 @@ const server = http.createServer(function (req, res) {
             executeRequest("INSERT INTO `locationelement` (`idLocationElement`, `idHomeLocation`, `idElementType`, `title`, `port`) VALUES (NULL, " + homeLocationIndex +  ", " + typeIndex + ", '" + elementTitle + "', '" + port +"')", updateDataFromDB);
         break;
 
+        case "/getHomeLocations":
+            res.writeHead(200, {'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
+
+            data = JSON.stringify(homeLocations);
+
+            console.log(data);
+            res.write(data);
+            res.end();
+        break;
+
+        case "/getElementTypes":
+            res.writeHead(200, {'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
+
+            data = JSON.stringify(elementTypes);
+
+            console.log(data);
+            res.write(data);
+            res.end();
+        break;
+
+        case "/getLocationElements":
+            res.writeHead(200, {'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
+
+            data = JSON.stringify(locationElements);
+
+            console.log(data);
+            res.write(data);
+            res.end();
+        break;
+
         case "/deleteLocationElement":
-            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.writeHead(200, {'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*'});
             res.end();
 
             homeLocationIndex = getIndexByTitle(homeLocations, urlObj.query['homeLocation']);

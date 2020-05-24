@@ -1,44 +1,32 @@
+
+//use global variable "nrf"
+
 /**
  * Init NRF module. Must be called twice.
  */
-exports.init = function(nrf){
+exports.init = function(){
+    nrf.setReg(0x01, 0x3F);
+    nrf.setReg(0x01, 0x3F);
 
-    if(nrf != undefined){
-        this.nrf = nrf;
-    } 
-    else if(this.nrf != undefined){
-
-    }
-    else{
-        console.log("[ ERROR ] NRF init failed. nfr == undefined");
-        return null;
-    }
-    
-    this.nrf.setReg(0x01, 0x3F);
-    this.nrf.setReg(0x01, 0x3F);
-
-    if(this.nrf.getReg(0x01) != 0x3F){
+    if(nrf.getReg(0x01) != 0x3F){
         return null;
     }
 
-    this.nrf.setReg(0x02, 0x03);
-    this.nrf.setReg(0x03, 0x03);
-    this.nrf.setReg(0x04, 0x5F);
-    this.nrf.setChannel(0x60);
-    this.nrf.setReg(0x06, 0x27);
-    this.nrf.setReg(0x1C, 0x3F);
-    this.nrf.setReg(0x1D, 0x06);
-    this.nrf.setReg(0x0e, 0x70);
-    
-    this.nrf.init([1, 1, 1, 1, 1], [2, 1, 1, 1, 1]);
-    
-    return this;
+    nrf.setReg(0x02, 0x03);
+    nrf.setReg(0x03, 0x03);
+    nrf.setReg(0x04, 0x5F);
+    nrf.setChannel(0x60);
+    nrf.setReg(0x06, 0x27);
+    nrf.setReg(0x1C, 0x3F);
+    nrf.setReg(0x1D, 0x06);
+    nrf.setReg(0x0e, 0x70);
+    nrf.init([1, 1, 1, 1, 1], [2, 1, 1, 1, 1]);
 }
 
 
 
 exports.getMessage = function(){
-    let data = this.nrf.getData();
+    let data = nrf.getData();
     let dataLength = data[0];
     let arr = [];
   
@@ -52,10 +40,10 @@ exports.startHandler = function(){
     setWatch(() => {
         console.log("[ INFO ] NRF module interrupt.");
         
-        let dataPipe = this.nrf.getDataPipe();
+        let dataPipe = nrf.getDataPipe();
         
         if(dataPipe !== undefined) {
-            let msg = this.getMessage();
+            let msg = getMessage();
             
             console.log("[ INFO ] New incomming data NRF -> " + dataPipe + ": " + msg);
     
@@ -106,6 +94,6 @@ exports.startHandler = function(){
 }
 
 exports.isOnline = function(addr){
-    this.nrf.setTXAddr(addr);
-    this.nrf.send([0x01, 0x01]); 
+    nrf.setTXAddr(addr);
+    nrf.send([0x01, 0x01]); 
 }

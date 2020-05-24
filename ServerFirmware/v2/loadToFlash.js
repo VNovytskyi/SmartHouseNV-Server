@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+let data = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -222,4 +222,7 @@
 	<script src="usualSite.js"></script>
 </body>
 </body>
-</html>
+</html>`;
+
+
+require("Storage").write("a", data);
